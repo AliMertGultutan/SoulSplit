@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using SoulSplit.Combat;
+using SoulSplit.Core;
+using UnityEngine.SceneManagement;
 
 namespace SoulSplit.Player
 {
@@ -58,6 +60,18 @@ namespace SoulSplit.Player
         private void OnEnable()
         {
             if (health != null) health.OnDeath += HandleDeath;
+        }
+
+        private void Start()
+        {
+            if (!ProgressionSave.TryConsumeResume(SceneManager.GetActiveScene().name, out ProgressionSave.CheckpointData saved))
+                return;
+
+            _defaultSpawn = saved.Position;
+            transform.position = saved.Position;
+            _rb.position = saved.Position;
+            _rb.linearVelocity = Vector2.zero;
+            Physics2D.SyncTransforms();
         }
 
         private void OnDisable()

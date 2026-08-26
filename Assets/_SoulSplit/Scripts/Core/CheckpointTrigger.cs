@@ -1,5 +1,6 @@
 using UnityEngine;
 using SoulSplit.Player;
+using UnityEngine.SceneManagement;
 
 namespace SoulSplit.Core
 {
@@ -15,7 +16,13 @@ namespace SoulSplit.Core
         private void OnTriggerEnter2D(Collider2D other)
         {
             PlayerDeathHandler handler = other.GetComponentInParent<PlayerDeathHandler>();
-            if (handler != null) handler.SetCheckpoint(transform);
+            if (handler == null) return;
+
+            handler.SetCheckpoint(transform);
+            ProgressionSave.SaveCheckpoint(
+                SceneManager.GetActiveScene().name,
+                gameObject.name,
+                transform.position);
         }
     }
 }

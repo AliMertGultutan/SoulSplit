@@ -31,6 +31,7 @@ namespace SoulSplit.Core
         private AudioClip _deathClip;
         private AudioClip _soulOutClip;
         private AudioClip _soulReturnClip;
+        private AudioClip _checkpointClip;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void RegisterBootstrap()
@@ -74,8 +75,8 @@ namespace SoulSplit.Core
         {
             _player = FindAnyObjectByType<PlayerController>();
             _switchManager = FindAnyObjectByType<SoulSwitchManager>();
-            _attacks = FindObjectsByType<MeleeAttack>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            _healthPools = FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            _attacks = FindObjectsByType<MeleeAttack>(FindObjectsInactive.Include);
+            _healthPools = FindObjectsByType<Health>(FindObjectsInactive.Include);
         }
 
         private void Subscribe()
@@ -87,6 +88,7 @@ namespace SoulSplit.Core
             }
 
             if (_switchManager != null) _switchManager.OnFormChanged += HandleFormChanged;
+            ProgressionSave.OnCheckpointSaved += HandleCheckpointSaved;
 
             if (_attacks != null)
             {
@@ -114,6 +116,7 @@ namespace SoulSplit.Core
             }
 
             if (_switchManager != null) _switchManager.OnFormChanged -= HandleFormChanged;
+            ProgressionSave.OnCheckpointSaved -= HandleCheckpointSaved;
 
             if (_attacks != null)
             {
@@ -162,6 +165,11 @@ namespace SoulSplit.Core
             Play(soulActive ? _soulOutClip : _soulReturnClip, forced ? 0.62f : 0.50f);
         }
 
+        private void HandleCheckpointSaved(ProgressionSave.CheckpointData data)
+        {
+            Play(_checkpointClip, 0.48f);
+        }
+
         private void Play(AudioClip clip, float volume)
         {
             if (_source != null && clip != null) _source.PlayOneShot(clip, volume);
@@ -178,6 +186,7 @@ namespace SoulSplit.Core
             _deathClip = CreateSweep("Death", 0.38f, 180f, 42f, 0.32f, 0.45f, 31);
             _soulOutClip = CreateSweep("SoulOut", 0.34f, 240f, 760f, 0.18f, 0.32f, 37);
             _soulReturnClip = CreateSweep("SoulReturn", 0.28f, 690f, 210f, 0.16f, 0.30f, 41);
+            _checkpointClip = CreateSweep("Checkpoint", 0.42f, 380f, 820f, 0.04f, 0.42f, 43);
         }
 
         private static AudioClip CreateSweep(string name, float duration, float startFrequency,

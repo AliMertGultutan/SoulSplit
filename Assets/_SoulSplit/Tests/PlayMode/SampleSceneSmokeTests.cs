@@ -62,6 +62,8 @@ namespace SoulSplit.Tests
             Assert.That(pauseMenu, Is.Not.Null, "Oyun sahnesi duraklatma menusunu otomatik kurmalidir.");
             Assert.That(Object.FindAnyObjectByType<GameAudioFeedback>(), Is.Not.Null,
                 "Oyun sahnesi ses geri bildirim sistemini otomatik kurmalidir.");
+            Assert.That(Object.FindAnyObjectByType<CheckpointToastUI>(), Is.Not.Null,
+                "Oyun sahnesi checkpoint bildirimini otomatik kurmalidir.");
 
             pauseMenu.Open();
             Assert.That(pauseMenu.IsOpen, Is.True);

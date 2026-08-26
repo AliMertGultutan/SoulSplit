@@ -107,6 +107,7 @@ namespace SoulSplit.UI
 
         public void RestartLevel()
         {
+            ProgressionSave.RequestResume();
             ReleasePause();
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }

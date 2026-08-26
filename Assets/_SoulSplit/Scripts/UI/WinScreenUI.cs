@@ -16,6 +16,7 @@ namespace SoulSplit.UI
 
         public void Show()
         {
+            ProgressionSave.Clear();
             if (panelRoot != null) panelRoot.SetActive(true);
             TimeScaleController.SetPaused(this, true);
         }
