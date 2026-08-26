@@ -6,6 +6,7 @@ using SoulSplit.Combat;
 using SoulSplit.Core;
 using SoulSplit.Enemies;
 using SoulSplit.Player;
+using SoulSplit.UI;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
@@ -50,6 +51,27 @@ namespace SoulSplit.Tests
             yield return null;
 
             Assert.That(bodyAttack.AcceptsInput, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator PauseMenu_AutoBootstrapsAndRestoresTimeScale()
+        {
+            yield return null;
+
+            PauseMenuUI pauseMenu = Object.FindAnyObjectByType<PauseMenuUI>();
+            Assert.That(pauseMenu, Is.Not.Null, "Oyun sahnesi duraklatma menusunu otomatik kurmalidir.");
+            Assert.That(Object.FindAnyObjectByType<GameAudioFeedback>(), Is.Not.Null,
+                "Oyun sahnesi ses geri bildirim sistemini otomatik kurmalidir.");
+
+            pauseMenu.Open();
+            Assert.That(pauseMenu.IsOpen, Is.True);
+            Assert.That(TimeScaleController.IsPaused, Is.True);
+            Assert.That(Time.timeScale, Is.Zero);
+
+            pauseMenu.Close();
+            Assert.That(pauseMenu.IsOpen, Is.False);
+            Assert.That(TimeScaleController.IsPaused, Is.False);
+            Assert.That(Time.timeScale, Is.EqualTo(1f).Within(0.001f));
         }
 
         [UnityTest]

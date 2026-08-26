@@ -19,6 +19,7 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 | Hafif saldırı | Sol tık veya J | West button |
 | Ağır saldırı | Orta tık veya K | East button |
 | Ruh değişimi | Sağ tık veya E | North button |
+| Duraklat / devam et | Esc | Start button |
 
 ## Oyun kuralları
 
@@ -27,6 +28,8 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 - Ruh dışarıdayken enerji mesafeye bağlı olarak daha hızlı tükenir.
 - Beden ve ruh ortak can kullanır; beden savunmasız bırakılırsa oyuncu ölebilir.
 - Checkpoint tetikleri yeniden doğuş konumunu günceller.
+- Duraklatma menüsünden oyuna dönülebilir, bölüm yeniden başlatılabilir, ana menüye dönülebilir ve ana ses seviyesi ayarlanabilir.
+- Sıçrama, saldırı, hasar, sekme ve ruh geçişleri çalışma anında üretilen kısa seslerle geri bildirim verir; harici ses varlığı gerekmez.
 
 ## Geliştirme
 

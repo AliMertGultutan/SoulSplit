@@ -82,6 +82,8 @@ namespace SoulSplit.Player
         public Transform BodyTransform => body != null ? body.transform : null;
         /// <summary>Prefab gibi sahne disi nesnelerin ruhu guvenle bulabilmesi icin salt okunur hedef.</summary>
         public Transform SoulTransform => soul != null ? soul.transform : null;
+        /// <summary>Form degistiginde yeni ruh durumu ve zorunlu donus bilgisiyle tetiklenir.</summary>
+        public event System.Action<bool, bool> OnFormChanged;
 
         /// <summary>Disaridan zorla bedene dondurur (olum, sahne gecisi vb.).</summary>
         public void ForceReturnToBody()
@@ -203,6 +205,7 @@ namespace SoulSplit.Player
 
             cameraFollow.SetTarget(soul.transform);
             if (tether != null) tether.SetVisible(true);
+            OnFormChanged?.Invoke(true, false);
         }
 
         private void ReturnToBody(bool forced, bool materializeAtSoul)
@@ -231,6 +234,7 @@ namespace SoulSplit.Player
 
             // Enerji bitip zorla dondurulduysa hemen tekrar cikilamasin.
             if (forced) _lockoutTimer = forcedReturnLockout;
+            OnFormChanged?.Invoke(false, forced);
         }
 
         /// <summary>
