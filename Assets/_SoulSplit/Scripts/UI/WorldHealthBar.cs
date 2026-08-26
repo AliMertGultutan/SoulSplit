@@ -56,7 +56,7 @@ namespace SoulSplit.UI
         }
 
         /// <summary>Sadece gercekten hasar gectiginde bari goster; sekmede gosterme.</summary>
-        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection)
+        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection, int amount)
         {
             if (result == HitResult.Damaged || result == HitResult.Killed)
             {

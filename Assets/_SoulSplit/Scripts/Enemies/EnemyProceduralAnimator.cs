@@ -115,8 +115,11 @@ namespace SoulSplit.Enemies
             if (health != null) health.OnDeath -= HandleDeath;
         }
 
-        private void HandleAttackTriggered()
+        private void HandleAttackTriggered(AttackTier tier)
         {
+            // Bu prosedurel animator agir/hafif ayrimi yapmiyor; sureler zaten
+            // dusmanin kendi AttackWindupDuration'indan turetiliyor ve o deger
+            // kademeye gore degisiyor, yani zamanlama dogal olarak uyuyor.
             // Hazirlik suresi dusmanin kendi windup'iyla eslesin ki
             // vurus tam hazirlik bitince "carpsin" gibi hissettirsin.
             _attackAnticipationDuration = enemy != null

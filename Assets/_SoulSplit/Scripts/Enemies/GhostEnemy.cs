@@ -5,11 +5,9 @@ namespace SoulSplit.Enemies
 {
     /// <summary>
     /// Hayalet dusman. Duvarlardan gecer (Physics2D katman matrisi),
-    /// yercekimsizdir ve SADECE ruh formunu hedef alir.
-    ///
-    /// Oyuncu bedendeyken bu dusman uyuklar; ruh cikinca uyanir.
-    /// Yani ruh formuna gecmek iki cepheyi birden acar: bedeni fiziksel
-    /// dusmanlara, ruhu da hayaletlere. Bu, form degistirmenin bedelidir.
+    /// yercekimsizdir; hem fiziksel bedeni hem de ayrilmis ruhu hedef alabilir.
+    /// Ruh disaridayken iki formdan kendisine daha yakin olani secer. Boylece
+    /// hayaletler bedenin yaninda guvenle beklenebilen pasif engeller olmaz.
     /// </summary>
     public class GhostEnemy : EnemyBase
     {
@@ -26,8 +24,14 @@ namespace SoulSplit.Enemies
         [SerializeField] private float dormantAlpha = 0.35f;
         [SerializeField] private float alphaFadeSpeed = 4f;
 
+        [Header("Dusmanlar Arasi Hasar")]
+        [Tooltip("Ruhani saldiri alanina giren fiziksel dusmanlarin da hasar almasini saglar.")]
+        [SerializeField] private bool damagePhysicalEnemies = true;
+
         [Header("Referanslar")]
         [SerializeField] private SoulSwitchManager switchManager;
+        [Tooltip("Oyuncunun fiziksel bedeni.")]
+        [SerializeField] private Transform bodyTransform;
         [Tooltip("Oyuncunun ruh objesi.")]
         [SerializeField] private Transform soulTransform;
         [SerializeField] private SpriteRenderer spriteRenderer;
@@ -38,18 +42,53 @@ namespace SoulSplit.Enemies
         protected override void Awake()
         {
             base.Awake();
+            ResolvePlayerReferences();
             _rb.gravityScale = 0f;
             _wanderOrigin = transform.position;
             _wanderPhase = Random.value * Mathf.PI * 2f;
 
             if (spriteRenderer == null) spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            if (damagePhysicalEnemies) IncludeAttackTargetLayer("PhysicalEnemy");
+            IncludeAttackTargetLayer("Body");
         }
 
-        /// <summary>Ruh disarda degilse bu dusmanin hedefi yoktur.</summary>
+        /// <summary>
+        /// Oyuncunun ruhuna karsi saldiri ruhani kalir. Fiziksel dusman zirhi ise
+        /// kendi boyutundaki hasari kabul ettigi icin, sadece bu hedef tipinde
+        /// isabet fiziksel hasar olarak cozulur.
+        /// </summary>
+        protected override SoulSplit.Combat.DamageType ResolveDamageTypeFor(SoulSplit.Combat.Health victim)
+        {
+            bool physicalVictim = victim != null &&
+                (victim.GetComponentInParent<PhysicalEnemy>() != null ||
+                 victim.GetComponentInParent<PlayerController>() != null);
+            return physicalVictim
+                ? SoulSplit.Combat.DamageType.Physical
+                : base.ResolveDamageTypeFor(victim);
+        }
+
+        private void ResolvePlayerReferences()
+        {
+            if (switchManager == null)
+                switchManager = FindAnyObjectByType<SoulSwitchManager>();
+
+            if (soulTransform == null && switchManager != null)
+                soulTransform = switchManager.SoulTransform;
+
+            if (bodyTransform == null && switchManager != null)
+                bodyTransform = switchManager.BodyTransform;
+        }
+
+        /// <summary>Bedeni her zaman, ruh disaridaysa iki formdan en yakinini hedefler.</summary>
         protected override Transform FindTarget()
         {
             bool soulIsOut = switchManager != null && switchManager.IsSoulActive;
-            return soulIsOut ? soulTransform : null;
+            if (!soulIsOut || soulTransform == null) return bodyTransform;
+            if (bodyTransform == null) return soulTransform;
+
+            float bodyDistance = ((Vector2)(bodyTransform.position - transform.position)).sqrMagnitude;
+            float soulDistance = ((Vector2)(soulTransform.position - transform.position)).sqrMagnitude;
+            return soulDistance < bodyDistance ? soulTransform : bodyTransform;
         }
 
         protected override void Update()
@@ -63,8 +102,8 @@ namespace SoulSplit.Enemies
         {
             if (spriteRenderer == null) return;
 
-            bool awake = switchManager != null && switchManager.IsSoulActive;
-            float targetAlpha = awake ? 1f : dormantAlpha;
+            // Artik beden de gecerli hedef oldugu icin hayalet her iki formda da aktiftir.
+            float targetAlpha = 1f;
 
             Color c = spriteRenderer.color;
             c.a = Mathf.Lerp(c.a, targetAlpha, 1f - Mathf.Exp(-alphaFadeSpeed * Time.deltaTime));

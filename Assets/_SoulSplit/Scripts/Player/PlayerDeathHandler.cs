@@ -14,6 +14,7 @@ namespace SoulSplit.Player
     /// Yeniden dogus KASITLI olarak hizli: raporda "hizli respawn" var,
     /// cunku ceza olum degil, kaybedilen ilerleme olmali.
     /// </summary>
+    [RequireComponent(typeof(Rigidbody2D), typeof(Health), typeof(PlayerController))]
     public class PlayerDeathHandler : MonoBehaviour
     {
         [Header("Referanslar")]
@@ -46,6 +47,12 @@ namespace SoulSplit.Player
             if (controller == null) controller = GetComponent<PlayerController>();
             if (input == null) input = GetComponent<PlayerInputHandler>();
             _defaultSpawn = transform.position;
+
+            if (health == null || controller == null || _rb == null)
+            {
+                Debug.LogError("[PlayerDeathHandler] Zorunlu oyuncu bilesenleri eksik; yeniden dogus devre disi.", this);
+                enabled = false;
+            }
         }
 
         private void OnEnable()
@@ -116,6 +123,12 @@ namespace SoulSplit.Player
             Color final = visual.color;
             final.a = to;
             visual.color = final;
+        }
+
+        private void OnValidate()
+        {
+            respawnDelay = Mathf.Max(0f, respawnDelay);
+            deathFadeDuration = Mathf.Max(0f, deathFadeDuration);
         }
     }
 }

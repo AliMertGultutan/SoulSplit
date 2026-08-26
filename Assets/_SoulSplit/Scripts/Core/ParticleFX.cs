@@ -120,7 +120,15 @@ namespace SoulSplit.Core
         private static Material GetDefaultMaterial()
         {
             if (_cachedMaterial != null) return _cachedMaterial;
-            _cachedMaterial = new Material(Shader.Find("Sprites/Default"));
+            // "Sprites/Default" Built-in RP shader'i — URP'de sadece geriye
+            // donuk uyumluluk katmaniyla calisir (build'de shader stripping
+            // ile kaybolabilir) ve Light2D'den etkilenmez. Projenin geri
+            // kalani URP 2D sprite shader'larini kullaniyor; parcaciklar da
+            // ayni ailenin unlit varyantini kullansin (bilerek unlit —
+            // kivilcim/toz kendi isigini yayiyor gibi hissettirir).
+            Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            _cachedMaterial = new Material(shader);
             return _cachedMaterial;
         }
     }

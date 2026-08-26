@@ -1,0 +1,21 @@
+{
+  "name": "SoulSplit.EditModeTests",
+  "rootNamespace": "SoulSplit.Tests",
+  "references": [
+    "SoulSplit.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

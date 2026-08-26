@@ -1,0 +1,20 @@
+{
+  "name": "SoulSplit.PlayModeTests",
+  "rootNamespace": "SoulSplit.Tests",
+  "references": [
+    "SoulSplit.Runtime",
+    "Unity.RenderPipelines.Universal.2D.Runtime"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

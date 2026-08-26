@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using SoulSplit.Combat;
+using SoulSplit.Core;
 
 namespace SoulSplit.Enemies
 {
@@ -32,6 +34,12 @@ namespace SoulSplit.Enemies
         [SerializeField] protected float detectionRadius = 7f;
         [Tooltip("Hedef bu mesafeden uzaklasirsa takibi birakir. Detection'dan buyuk olmali.")]
         [SerializeField] protected float loseTargetRadius = 11f;
+        [Tooltip("TASMA SINIRI: kovalarken baslangic noktasindan en fazla bu kadar uzaklasir; " +
+                 "asarsa hedefi birakip postuna doner. 0 = sinirsiz (eski davranis).\n\n" +
+                 "Neden gerekli: loseTargetRadius sadece hedef UZAKLASINCA devreye giriyor. " +
+                 "Oyuncu yakinda ama ULASILAMAZ bir yere saklanirsa (ornegin dusmanin " +
+                 "sigmadigi egilme tuneli) dusman sonsuza kadar agizda kamp ediyordu.")]
+        [SerializeField] protected float maxChaseDistanceFromPost = 0f;
 
         [Header("Saldiri")]
         [SerializeField] protected float attackRange = 1.4f;
@@ -45,10 +53,47 @@ namespace SoulSplit.Enemies
         [Tooltip("Bu dusman hangi boyuttan hasar verir.")]
         [SerializeField] protected DamageType dealtDamageType = DamageType.Physical;
 
+        [Header("Agir Saldiri (dusman)")]
+        [Tooltip("Acikken dusman arada bir agir saldiri yapar. Kapaliyken davranis eskisi gibi kalir.")]
+        [SerializeField] protected bool enableHeavyAttack = false;
+        [Tooltip("Her saldiri denemesinde agir olma olasiligi.")]
+        [Range(0f, 1f)]
+        [SerializeField] protected float heavyAttackChance = 0.3f;
+        [Tooltip("Agir saldirinin hasari. Oyuncunun PlayerHitReaction/HitFlash tarafindaki " +
+                 "heavyDamageThreshold ile (varsayilan 2) ESLESMELI — yoksa agir vurus tepkisi " +
+                 "(buyuk knockback, guclu hit-stop, siddetli kamera sarsintisi) tetiklenmez.")]
+        [SerializeField] protected int heavyAttackDamage = 2;
+        [Tooltip("Agir saldirinin hazirlik suresi. Hafiften belirgin UZUN olmali — " +
+                 "oyuncunun kacabilmesi icin adil telgraf budur.")]
+        [SerializeField] protected float heavyAttackWindup = 0.7f;
+        [Tooltip("Agir saldiridan sonraki bekleme. Hafiften uzun; buyuk vurusun bedeli.")]
+        [SerializeField] protected float heavyAttackCooldown = 2.4f;
+        [SerializeField] protected Vector2 heavyAttackHitboxSize = new Vector2(2.2f, 1.8f);
+
         [Header("Hasar Tepkisi")]
         [Tooltip("Hasar alinca kac saniye kontrolu kaybeder.")]
         [SerializeField] protected float hurtDuration = 0.25f;
         [SerializeField] protected float knockbackForce = 4f;
+
+        [Header("Hasar Tepkisi — Siddet Kademesi (Agir Vurus)")]
+        [Tooltip("Bu esigi veya ustunu gecen hasar 'agir vurus' sayilir; knockback ve sersemleme suresi buyur.")]
+        [SerializeField] protected int heavyDamageThreshold = 2;
+        [Tooltip("Agir vurusta knockbackForce bu katla carpilir.")]
+        [SerializeField] protected float heavyKnockbackMultiplier = 1.6f;
+        [Tooltip("Agir vurusta hurtDuration bu katla carpilir; sersemleme daha uzun surer.")]
+        [SerializeField] protected float heavyHurtDurationMultiplier = 1.5f;
+
+        [Header("Vurus Izi")]
+        [Tooltip("Saldiri savurmasinda silah/pence yorungesini gosteren yay. " +
+                 "Dusman saldirilari zaten attackWindup ile telegraf edildigi icin " +
+                 "bu iz OYUNCUNUNKINDEN DAHA SONUK tutulmali; amac geri bildirim, gorsel gurultu degil.")]
+        [SerializeField] protected bool showSlashTrail = true;
+        [SerializeField] protected Color slashColor = new Color(1f, 0.88f, 0.7f, 0.4f);
+        [Tooltip("Yay yaricapi. 0 birakilirsa attackRange'ten turetilir.")]
+        [SerializeField] protected float slashRadius = 0f;
+        [SerializeField] protected float slashThickness = 0.22f;
+        [Tooltip("Tarama acisi (derece). Negatif = saat yonu (yukaridan asagi savurma).")]
+        [SerializeField] protected float slashSweep = -115f;
 
         [Header("Olum")]
         [Tooltip("Can bitince obje kac saniye sonra sahneden kalkacak.")]
@@ -63,10 +108,15 @@ namespace SoulSplit.Enemies
         protected Transform _target;
         protected int _facing = 1;
 
+        private Vector2 _spawnPosition;
+        private AttackTier _currentTier = AttackTier.Light;
+        /// <summary>Tasma sinirini asip postuna donuyor mu? Sinirda titremeyi onleyen histerezis bayragi.</summary>
+        private bool _returningToPost;
         private float _stateTimer;
         private float _nextAttackTime;
         private bool _attackLanded;
         private readonly Collider2D[] _hitResults = new Collider2D[8];
+        private readonly HashSet<Health> _damagedThisAttack = new HashSet<Health>();
         private ContactFilter2D _attackFilter;
 
         public EnemyState State => _state;
@@ -76,21 +126,27 @@ namespace SoulSplit.Enemies
         /// <summary>Vurus oncesi hazirlik suresi. Saldiri animasyonu buna gore zamanlanir.</summary>
         public float AttackWindupDuration => attackWindup;
 
-        /// <summary>Saldiri baslarken tetiklenir. Animasyon scriptleri bunu dinler.</summary>
-        public event System.Action OnAttackTriggered;
+        /// <summary>
+        /// Saldiri baslarken tetiklenir; hangi kademe oldugunu tasir.
+        /// Animasyon scriptleri bunu dinler. (Oyuncudaki MeleeAttack.OnAttackTriggered
+        /// ile ayni desen — ayni AttackTier enum'u paylasiliyor.)
+        /// </summary>
+        public event System.Action<AttackTier> OnAttackTriggered;
+
+        /// <summary>Su an hazirlanan/uygulanan saldirinin kademesi.</summary>
+        public AttackTier CurrentAttackTier => _currentTier;
 
         protected virtual void Awake()
         {
             _rb = GetComponent<Rigidbody2D>();
             _health = GetComponent<Health>();
             _rb.freezeRotation = true;
+            // Tasma sinirinin olculdugu nokta. Alt siniflarin kendi devriye/dolanma
+            // merkezleri var ama onlar protected degil; bu yuzden EnemyBase kendi
+            // dogum noktasini ayrica tutuyor.
+            _spawnPosition = transform.position;
 
-            _attackFilter = new ContactFilter2D
-            {
-                useLayerMask = true,
-                layerMask = attackTargetLayers,
-                useTriggers = true
-            };
+            RefreshAttackFilter();
         }
 
         protected virtual void OnEnable()
@@ -155,6 +211,33 @@ namespace SoulSplit.Enemies
 
             float distance = Vector2.Distance(transform.position, _target.position);
 
+            // TASMA: postundan cok uzaklastiysa hedefi birak ve geri don.
+            // Bu kontrol digerlerinden ONCE gelmeli — aksi halde tasmis dusman
+            // menzile giren oyuncuya saldirmaya devam ederdi.
+            //
+            // HISTEREZIS sart: tek esik kullanilinca dusman sinirda takilip
+            // Chase<->Patrol arasinda saniyede birkac kez titriyordu (sinir disi
+            // -> Patrol -> Patrol onu iceri itiyor -> yeniden Chase -> ...).
+            // Bu yuzden birakma esigi ile yeniden hedeflenme esigi AYRI.
+            //
+            // Yeniden hedeflenme esigi DAR tutuldu (tasmanin 1/4'u): daha genis
+            // olunca dusman posta yarim yolda donup sakli oyuncuyu tekrar algiliyor
+            // ve 10-13 arasi sonsuz gidip gelme dongusune giriyordu. Dar esik,
+            // dusmanin sakli oyuncunun algi yaricapindan CIKACAK kadar geri
+            // donmesini garantiler.
+            if (maxChaseDistanceFromPost > 0.01f)
+            {
+                float fromPost = Vector2.Distance(transform.position, _spawnPosition);
+                if (!_returningToPost && fromPost >= maxChaseDistanceFromPost) _returningToPost = true;
+                else if (_returningToPost && fromPost <= maxChaseDistanceFromPost * 0.25f) _returningToPost = false;
+
+                if (_returningToPost)
+                {
+                    _state = EnemyState.Patrol;
+                    return;
+                }
+            }
+
             if (distance <= attackRange && Time.time >= _nextAttackTime)
             {
                 BeginAttack();
@@ -177,17 +260,25 @@ namespace SoulSplit.Enemies
 
         private void BeginAttack()
         {
+            // Kademe saldirinin BASINDA seciliyor; hazirlik suresi ve hasar
+            // buna gore degisiyor. Boylece uzun hazirlik = agir vurus geliyor
+            // demek oluyor ve oyuncu telgrafi okuyabiliyor.
+            _currentTier = (enableHeavyAttack && Random.value < heavyAttackChance)
+                ? AttackTier.Heavy
+                : AttackTier.Light;
+            bool heavy = _currentTier == AttackTier.Heavy;
+
             _state = EnemyState.Attack;
-            _stateTimer = attackWindup;
+            _stateTimer = heavy ? heavyAttackWindup : attackWindup;
             _attackLanded = false;
-            _nextAttackTime = Time.time + attackCooldown;
+            _nextAttackTime = Time.time + (heavy ? heavyAttackCooldown : attackCooldown);
 
             if (_target != null)
             {
                 _facing = _target.position.x >= transform.position.x ? 1 : -1;
             }
             OnAttackStarted();
-            OnAttackTriggered?.Invoke();
+            OnAttackTriggered?.Invoke(_currentTier);
         }
 
         private void TickAttack()
@@ -207,23 +298,80 @@ namespace SoulSplit.Enemies
 
         private void ApplyAttackDamage()
         {
+            // Iz ISABETTEN BAGIMSIZ cikar (oyuncudaki MeleeAttack ile ayni kural):
+            // oyuncu kacmayi basardiginda da savurmanin nereden gectigini gormeli.
+            bool heavy = _currentTier == AttackTier.Heavy;
+
+            if (showSlashTrail)
+            {
+                float radius = slashRadius > 0.01f ? slashRadius : attackRange * 0.95f;
+                // Agir vurus gorsel olarak da agir okunmali: daha genis yay,
+                // daha kalin serit, daha parlak/uzun sonme.
+                var col = slashColor;
+                if (heavy) col.a = Mathf.Min(1f, col.a * 1.6f);
+                SlashFX.Arc(
+                    transform.position + new Vector3(_facing * 0.25f, 0.1f, 0f),
+                    _facing, col,
+                    radius: heavy ? radius * 1.35f : radius,
+                    thickness: heavy ? slashThickness * 1.5f : slashThickness,
+                    startAngleDeg: heavy ? 115f : 95f,
+                    sweepDeg: heavy ? slashSweep * 1.3f : slashSweep,
+                    duration: heavy ? 0.22f : 0.15f);
+            }
+
+            Vector2 hitboxSize = heavy ? heavyAttackHitboxSize : attackHitboxSize;
+            int appliedDamage = heavy ? heavyAttackDamage : attackDamage;
+
             Vector2 center = (Vector2)transform.position + new Vector2(attackRange * 0.6f * _facing, 0f);
-            int count = Physics2D.OverlapBox(center, attackHitboxSize, 0f, _attackFilter, _hitResults);
+            int count = Physics2D.OverlapBox(center, hitboxSize, 0f, _attackFilter, _hitResults);
 
             Vector2 hitDirection = new Vector2(_facing, 0.15f).normalized;
+            _damagedThisAttack.Clear();
             for (int i = 0; i < count; i++)
             {
                 Health victim = Health.FindOn(_hitResults[i]);
-                if (victim != null) victim.TryTakeDamage(attackDamage, dealtDamageType, hitDirection);
+                if (victim == null || !_damagedThisAttack.Add(victim)) continue;
+
+                victim.TryTakeDamage(appliedDamage, ResolveDamageTypeFor(victim), hitDirection);
             }
         }
 
-        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection)
+        /// <summary>
+        /// Alt dusman tiplerinin calisma aninda ek hedef katmani acabilmesi icin.
+        /// Katman maskesi degisince ContactFilter da ayni karede yenilenir.
+        /// </summary>
+        protected void IncludeAttackTargetLayer(string layerName)
+        {
+            int layer = LayerMask.NameToLayer(layerName);
+            if (layer < 0) return;
+
+            attackTargetLayers |= 1 << layer;
+            RefreshAttackFilter();
+        }
+
+        /// <summary>
+        /// Varsayilan olarak prefabda ayarlanan hasar boyutunu kullanir.
+        /// Ozel dusmanlar hedef tipine gore bunu degistirebilir.
+        /// </summary>
+        protected virtual DamageType ResolveDamageTypeFor(Health victim) => dealtDamageType;
+
+        private void RefreshAttackFilter()
+        {
+            _attackFilter = new ContactFilter2D
+            {
+                useLayerMask = true,
+                layerMask = attackTargetLayers,
+                useTriggers = true
+            };
+        }
+
+        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection, int amount)
         {
             if (result != HitResult.Damaged) return;
 
+            bool isHeavy = amount >= heavyDamageThreshold;
             _state = EnemyState.Hurt;
-            _stateTimer = hurtDuration;
+            _stateTimer = isHeavy ? hurtDuration * heavyHurtDurationMultiplier : hurtDuration;
 
             // hitDirection zaten saldirgandan hedefe (bu dusmana) dogru, yani
             // dusmanin savrulmasi gereken yonle ayni. Bilinmiyorsa (sifir
@@ -231,7 +379,8 @@ namespace SoulSplit.Enemies
             Vector2 away = hitDirection.sqrMagnitude > 0.0001f
                 ? hitDirection
                 : new Vector2(-_facing, 0f);
-            _rb.linearVelocity = new Vector2(away.x * knockbackForce, _rb.linearVelocity.y);
+            float force = isHeavy ? knockbackForce * heavyKnockbackMultiplier : knockbackForce;
+            _rb.linearVelocity = new Vector2(away.x * force, _rb.linearVelocity.y);
         }
 
         private void HandleDeath()

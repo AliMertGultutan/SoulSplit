@@ -81,6 +81,12 @@ namespace SoulSplit.Player
         [Header("Duvar Kaymasi")]
         [SerializeField] private float wallSlideTilt = 10f;
 
+        [Header("Egilme (Crouch) Gorseli")]
+        [Tooltip("Egilirken sprite'in ne kadar basilacagi. Collider zaten kisaliyor (PlayerController) — bu sadece GORSEL geri bildirim, oyuncu tusun isledigini gorsun diye.")]
+        [Range(0f, 0.6f)]
+        [SerializeField] private float crouchSquashAmount = 0.32f;
+        [SerializeField] private float crouchTransitionSpeed = 14f;
+
         [Header("Bekleme Nefesi")]
         [Range(0f, 0.12f)]
         [SerializeField] private float idleBreathAmount = 0.045f;
@@ -118,6 +124,18 @@ namespace SoulSplit.Player
         [Tooltip("Savurma aninda one kayma mesafesi (dunya birimi).")]
         [SerializeField] private float attackLungeDistance = 0.27f;
 
+        [Header("Dovus Animasyonu — Agir Saldiri")]
+        [Tooltip("Hazirlik suresi. Hafiften UZUN — buyuk vurusun 'geliyor' hissi daha belirgin olmali.")]
+        [SerializeField] private float heavyAttackAnticipationDuration = 0.16f;
+        [Tooltip("Vurus darbesi. Hazirliktan cok daha kisa kalmali — 'yavas hazirlik, ani darbe' kontrasti agirda da gecerli.")]
+        [SerializeField] private float heavyAttackStrikeDuration = 0.05f;
+        [SerializeField] private float heavyAttackHoldDuration = 0.14f;
+        [Tooltip("Toparlanma. Hafiften UZUN — agir saldirinin bedeli budur, oyuncu daha uzun sure acik kalir.")]
+        [SerializeField] private float heavyAttackRecoveryDuration = 0.28f;
+        [SerializeField] private float heavyAttackWindupAngle = 30f;
+        [SerializeField] private float heavyAttackSwingAngle = 60f;
+        [SerializeField] private float heavyAttackLungeDistance = 0.42f;
+
         private float _spriteHalfHeight = 0.9f;
         private Vector3 _basePosition;
 
@@ -134,9 +152,12 @@ namespace SoulSplit.Player
         private float _tiltAngularVelocity;
         private float _dustCooldownTimer;
         private float _wallSlideDustTimer;
+        private float _crouchAmount;
 
         private float _attackTimer;
-        private float _attackTotalDuration;
+        private AttackOverlayTimings _lightAttackTimings;
+        private AttackOverlayTimings _heavyAttackTimings;
+        private AttackTier _attackTier = AttackTier.Light;
         private int _attackFacing = 1;
 
         /// <summary>Su an kosma temposunda mi? Ses ve toz efektleri bunu okuyabilir.</summary>
@@ -167,7 +188,10 @@ namespace SoulSplit.Player
                 _spriteHalfHeight = sr.sprite.bounds.extents.y;
             }
 
-            _attackTotalDuration = attackAnticipationDuration + attackStrikeDuration + attackHoldDuration + attackRecoveryDuration;
+            _lightAttackTimings = new AttackOverlayTimings(attackAnticipationDuration, attackStrikeDuration,
+                attackHoldDuration, attackRecoveryDuration, attackWindupAngle, attackSwingAngle, attackLungeDistance);
+            _heavyAttackTimings = new AttackOverlayTimings(heavyAttackAnticipationDuration, heavyAttackStrikeDuration,
+                heavyAttackHoldDuration, heavyAttackRecoveryDuration, heavyAttackWindupAngle, heavyAttackSwingAngle, heavyAttackLungeDistance);
         }
 
         private void OnEnable()
@@ -190,9 +214,10 @@ namespace SoulSplit.Player
             }
         }
 
-        private void HandleAttackTriggered()
+        private void HandleAttackTriggered(AttackTier tier)
         {
-            _attackTimer = _attackTotalDuration;
+            _attackTier = tier;
+            _attackTimer = tier == AttackTier.Heavy ? _heavyAttackTimings.TotalDuration : _lightAttackTimings.TotalDuration;
             _attackFacing = controller != null ? controller.FacingDirection : 1;
         }
 
@@ -245,6 +270,9 @@ namespace SoulSplit.Player
 
             _landSquashAmount = Mathf.Lerp(_landSquashAmount, 0f, 1f - Mathf.Exp(-landRecoverySpeed * dt));
 
+            float targetCrouch = controller.IsCrouching ? crouchSquashAmount : 0f;
+            _crouchAmount = Mathf.Lerp(_crouchAmount, targetCrouch, 1f - Mathf.Exp(-crouchTransitionSpeed * dt));
+
             ApplyStride(velocity, grounded, state, dt);
             ApplyTilt(state, velocity, grounded, dt);
             ApplyAttackOverlay(dt);
@@ -266,12 +294,12 @@ namespace SoulSplit.Player
             if (t < launchPopSquashPortion)
             {
                 float squashT = t / launchPopSquashPortion;
-                _currentStretch = Mathf.Lerp(0f, squashTarget, EaseOutQuad(squashT));
+                _currentStretch = Mathf.Lerp(0f, squashTarget, AttackOverlayAnimator.EaseOutQuad(squashT));
             }
             else
             {
                 float stretchT = (t - launchPopSquashPortion) / (1f - launchPopSquashPortion);
-                _currentStretch = Mathf.Lerp(squashTarget, stretchTarget, EaseOutQuad(stretchT));
+                _currentStretch = Mathf.Lerp(squashTarget, stretchTarget, AttackOverlayAnimator.EaseOutQuad(stretchT));
             }
         }
 
@@ -290,52 +318,17 @@ namespace SoulSplit.Player
         {
             if (_attackTimer <= 0f) return;
 
+            bool isHeavy = _attackTier == AttackTier.Heavy;
+            AttackOverlayTimings timings = isHeavy ? _heavyAttackTimings : _lightAttackTimings;
+
             _attackTimer -= dt;
-            float elapsed = _attackTotalDuration - Mathf.Max(_attackTimer, 0f);
+            float elapsed = timings.TotalDuration - Mathf.Max(_attackTimer, 0f);
 
-            float angleOffset;
-            float lungeOffset;
-
-            float strikeStart = attackAnticipationDuration;
-            float holdStart = strikeStart + attackStrikeDuration;
-            float recoveryStart = holdStart + attackHoldDuration;
-
-            if (elapsed < strikeStart)
-            {
-                // Hazirlik: yavas geri cekilme.
-                float t = attackAnticipationDuration <= 0f ? 1f : elapsed / attackAnticipationDuration;
-                angleOffset = Mathf.Lerp(0f, -attackWindupAngle, EaseOutQuad(t));
-                lungeOffset = 0f;
-            }
-            else if (elapsed < holdStart)
-            {
-                // Vurus: COK hizli firlama, neredeyse anlik.
-                float t = attackStrikeDuration <= 0f ? 1f : (elapsed - strikeStart) / attackStrikeDuration;
-                float eased = EaseOutCubic(t);
-                angleOffset = Mathf.Lerp(-attackWindupAngle, attackSwingAngle, eased);
-                lungeOffset = Mathf.Lerp(0f, attackLungeDistance, eased);
-            }
-            else if (elapsed < recoveryStart)
-            {
-                // Tutma: tepe pozu SABIT — "impact frame" gozun vurusu okumasi icin asili kalir.
-                angleOffset = attackSwingAngle;
-                lungeOffset = attackLungeDistance;
-            }
-            else
-            {
-                float recoveryDuration = Mathf.Max(0.001f, attackRecoveryDuration);
-                float t = (elapsed - recoveryStart) / recoveryDuration;
-                angleOffset = Mathf.Lerp(attackSwingAngle, 0f, EaseOutQuad(t));
-                lungeOffset = Mathf.Lerp(attackLungeDistance, 0f, EaseOutQuad(t));
-            }
+            AttackOverlayAnimator.Evaluate(timings, elapsed, out float angleOffset, out float lungeOffset);
 
             transform.localRotation *= Quaternion.Euler(0f, 0f, angleOffset * _attackFacing);
             transform.localPosition += new Vector3(lungeOffset * _attackFacing, 0f, 0f);
         }
-
-        private static float EaseOutQuad(float t) => 1f - (1f - t) * (1f - t);
-        /// <summary>Quad'dan daha keskin baslar — "snap" hissi icin vurus fazinda kullanilir.</summary>
-        private static float EaseOutCubic(float t) { float inv = 1f - t; return 1f - inv * inv * inv; }
 
         /// <summary>
         /// Adim dongusu: hiza gore yurume ya da kosma parametreleri secilir,
@@ -384,7 +377,7 @@ namespace SoulSplit.Player
                 _stridePhase = 0f;
             }
 
-            float stretch = _currentStretch - _landSquashAmount - squash;
+            float stretch = _currentStretch - _landSquashAmount - squash - _crouchAmount;
             float scaleY = 1f + stretch;
             // Hacim korunur gibi: uzarken incelir, ezilirken genisler.
             float scaleX = 1f / Mathf.Max(0.2f, scaleY);

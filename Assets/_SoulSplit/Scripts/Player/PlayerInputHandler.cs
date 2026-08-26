@@ -19,11 +19,13 @@ namespace SoulSplit.Player
         [SerializeField] private string moveActionName = "Move";
         [SerializeField] private string jumpActionName = "Jump";
         [SerializeField] private string attackActionName = "Attack";
+        [SerializeField] private string heavyAttackActionName = "HeavyAttack";
         [SerializeField] private string soulSwitchActionName = "SoulSwitch";
 
         private InputAction _moveAction;
         private InputAction _jumpAction;
         private InputAction _attackAction;
+        private InputAction _heavyAttackAction;
         private InputAction _soulSwitchAction;
 
         /// <summary>Ham yon girdisi (-1..1).</summary>
@@ -37,6 +39,8 @@ namespace SoulSplit.Player
         /// <summary>Ziplama tusu bu karede birakildi mi?</summary>
         public bool JumpReleasedThisFrame { get; private set; }
         public bool AttackPressedThisFrame { get; private set; }
+        /// <summary>Agir saldiri tusuna bu karede basildi mi?</summary>
+        public bool HeavyAttackPressedThisFrame { get; private set; }
         public bool SoulSwitchPressedThisFrame { get; private set; }
 
         [Header("Olu Bolge")]
@@ -56,6 +60,7 @@ namespace SoulSplit.Player
             _moveAction = map.FindAction(moveActionName, throwIfNotFound: true);
             _jumpAction = map.FindAction(jumpActionName, throwIfNotFound: true);
             _attackAction = map.FindAction(attackActionName, throwIfNotFound: true);
+            _heavyAttackAction = map.FindAction(heavyAttackActionName, throwIfNotFound: true);
             _soulSwitchAction = map.FindAction(soulSwitchActionName, throwIfNotFound: true);
         }
 
@@ -81,6 +86,7 @@ namespace SoulSplit.Player
             JumpReleasedThisFrame = _jumpAction.WasReleasedThisFrame();
             JumpHeld = _jumpAction.IsPressed();
             AttackPressedThisFrame = _attackAction.WasPressedThisFrame();
+            HeavyAttackPressedThisFrame = _heavyAttackAction.WasPressedThisFrame();
             SoulSwitchPressedThisFrame = _soulSwitchAction.WasPressedThisFrame();
         }
     }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using SoulSplit.Core;
+using SoulSplit.Combat;
 
 namespace SoulSplit.Player
 {
@@ -26,6 +27,8 @@ namespace SoulSplit.Player
         [SerializeField] private GameObject soulObject;
         [SerializeField] private CameraFollow cameraFollow;
         [SerializeField] private SoulTether tether;
+        [SerializeField] private MeleeAttack bodyAttack;
+        [SerializeField] private MeleeAttack soulAttack;
 
         [Header("Ruh Enerjisi")]
         [Tooltip("Ruh formunda kalinabilecek en uzun sure (saniye), bedene yapisikken.")]
@@ -49,8 +52,23 @@ namespace SoulSplit.Player
         [Tooltip("Zorla geri donusten sonra tekrar ayrilamama suresi.")]
         [SerializeField] private float forcedReturnLockout = 1f;
 
+        [Header("Ruhun Konumunda Bedenlesme")]
+        [Tooltip("Ruh formu kapatildiginda bedeni ruhun bulundugu konuma tasir.")]
+        [SerializeField] private bool materializeAtSoulPosition = true;
+        [Tooltip("Bedenlesme noktasini engelleyen katmanlar. Varsayilan: Ground.")]
+        [SerializeField] private LayerMask materializationBlockingLayers = 1 << 8;
+        [Tooltip("Ruh bir duvarin icindeyse en fazla bu yaricapta guvenli bosluk aranir.")]
+        [SerializeField] private float maxMaterializationSearchRadius = 2.5f;
+        [Tooltip("Guvenli nokta aramasinin hassasiyeti. Kucuk deger daha hassas fakat daha masraflidir.")]
+        [SerializeField] private float materializationSearchStep = 0.25f;
+        [SerializeField] private Color materializationFxColor = new Color(0.35f, 0.9f, 1f, 1f);
+
         private float _soulEnergy;
         private float _lockoutTimer;
+        private Rigidbody2D _bodyRigidbody;
+        private CapsuleCollider2D _bodyCollider;
+        private Vector2 _bodyStandingColliderSize;
+        private Vector2 _bodyStandingColliderOffset;
 
         /// <summary>Su an ruh formunda miyiz?</summary>
         public bool IsSoulActive { get; private set; }
@@ -60,11 +78,17 @@ namespace SoulSplit.Player
         public float CurrentDrainMultiplier { get; private set; } = 1f;
         /// <summary>Ayrilmaya yetecek enerji var mi?</summary>
         public bool CanSeparate => _soulEnergy >= minEnergyToSeparate && _lockoutTimer <= 0f;
+        /// <summary>Prefab gibi sahne disi nesnelerin bedeni guvenle bulabilmesi icin salt okunur hedef.</summary>
+        public Transform BodyTransform => body != null ? body.transform : null;
+        /// <summary>Prefab gibi sahne disi nesnelerin ruhu guvenle bulabilmesi icin salt okunur hedef.</summary>
+        public Transform SoulTransform => soul != null ? soul.transform : null;
 
         /// <summary>Disaridan zorla bedene dondurur (olum, sahne gecisi vb.).</summary>
         public void ForceReturnToBody()
         {
-            if (IsSoulActive) ReturnToBody(forced: false);
+            // Olum/respawn gibi sistem cagrilarinda beden ruhun yanina
+            // isinlanmamali; yeniden dogus akisi kendi konumunu belirler.
+            if (IsSoulActive) ReturnToBody(forced: false, materializeAtSoul: false);
         }
 
         /// <summary>Enerjiyi doldurur ve kilidi kaldirir. Yeniden dogusta kullanilir.</summary>
@@ -72,6 +96,29 @@ namespace SoulSplit.Player
         {
             _soulEnergy = maxSoulDuration;
             _lockoutTimer = 0f;
+        }
+
+        private void Awake()
+        {
+            if (bodyAttack == null && body != null) bodyAttack = body.GetComponent<MeleeAttack>();
+            if (soulAttack == null && soul != null) soulAttack = soul.GetComponent<MeleeAttack>();
+
+            if (body != null)
+            {
+                _bodyRigidbody = body.GetComponent<Rigidbody2D>();
+                _bodyCollider = body.GetComponent<CapsuleCollider2D>();
+                if (_bodyCollider != null)
+                {
+                    _bodyStandingColliderSize = _bodyCollider.size;
+                    _bodyStandingColliderOffset = _bodyCollider.offset;
+                }
+            }
+
+            if (!HasRequiredReferences())
+            {
+                Debug.LogError("[SoulSwitchManager] Zorunlu oyuncu/form referanslari eksik; form degisimi devre disi.", this);
+                enabled = false;
+            }
         }
 
         private void Start()
@@ -84,6 +131,7 @@ namespace SoulSplit.Player
             if (body != null) body.enabled = true;
             if (cameraFollow != null && body != null) cameraFollow.SetTarget(body.transform);
             if (tether != null) tether.SetVisible(false);
+            SetCombatForm(soulActive: false);
         }
 
         private void Update()
@@ -104,7 +152,7 @@ namespace SoulSplit.Player
             if (_soulEnergy <= 0f)
             {
                 _soulEnergy = 0f;
-                ReturnToBody(forced: true);
+                ReturnToBody(forced: true, materializeAtSoul: true);
             }
         }
 
@@ -128,7 +176,7 @@ namespace SoulSplit.Player
         {
             if (!input.SoulSwitchPressedThisFrame) return;
 
-            if (IsSoulActive) ReturnToBody(forced: false);
+            if (IsSoulActive) ReturnToBody(forced: false, materializeAtSoul: true);
             else if (CanSeparate) SeparateSoul();
         }
 
@@ -146,6 +194,7 @@ namespace SoulSplit.Player
             soulObject.SetActive(true);
             soul.enabled = true;
             soul.Spawn(body.transform.position, body.FacingDirection);
+            SetCombatForm(soulActive: true);
 
             if (soul.TryGetComponent(out Rigidbody2D soulRb))
             {
@@ -156,19 +205,136 @@ namespace SoulSplit.Player
             if (tether != null) tether.SetVisible(true);
         }
 
-        private void ReturnToBody(bool forced)
+        private void ReturnToBody(bool forced, bool materializeAtSoul)
         {
             IsSoulActive = false;
+
+            Vector2 soulPosition = soul.transform.position;
+            bool didMaterialize = materializeAtSoul && materializeAtSoulPosition &&
+                                  TryMaterializeBody(soulPosition);
 
             soul.enabled = false;
             soulObject.SetActive(false);
             body.enabled = true;
+            SetCombatForm(soulActive: false);
 
             cameraFollow.SetTarget(body.transform);
             if (tether != null) tether.SetVisible(false);
 
+            if (didMaterialize)
+            {
+                ParticleFX.Burst(soulPosition, materializationFxColor, count: 12,
+                    speed: 3.2f, size: 0.1f, lifetime: 0.28f,
+                    spreadAngle: 180f, direction: Vector2.up, gravityScale: 0f);
+                CameraFollow.PunchZoom(0.12f, 0.12f);
+            }
+
             // Enerji bitip zorla dondurulduysa hemen tekrar cikilamasin.
             if (forced) _lockoutTimer = forcedReturnLockout;
+        }
+
+        /// <summary>
+        /// Ruhu kapatirken bedeni ruhun konumuna tasir. Hedef bir tas/duvar
+        /// icindeyse ruhun ilerleme yonunden baslayarak en yakin bos kapsul
+        /// konumu aranir. Hic guvenli nokta bulunamazsa beden eski yerinde kalir.
+        /// </summary>
+        private bool TryMaterializeBody(Vector2 desiredPosition)
+        {
+            if (_bodyRigidbody == null || _bodyCollider == null) return false;
+
+            if (!TryFindSafeMaterializationPosition(desiredPosition, out Vector2 safePosition))
+            {
+                Debug.LogWarning("[SoulSwitchManager] Ruhun yakininda guvenli bedenlesme noktasi bulunamadi; beden eski konumunda kaldi.", this);
+                return false;
+            }
+
+            _bodyRigidbody.position = safePosition;
+            body.transform.position = safePosition;
+            _bodyRigidbody.linearVelocity = Vector2.zero;
+            _bodyRigidbody.angularVelocity = 0f;
+            body.SetFacingDirection(soul.FacingDirection);
+            Physics2D.SyncTransforms();
+            return true;
+        }
+
+        private bool TryFindSafeMaterializationPosition(Vector2 desiredPosition, out Vector2 safePosition)
+        {
+            if (IsMaterializationPositionClear(desiredPosition))
+            {
+                safePosition = desiredPosition;
+                return true;
+            }
+
+            float step = Mathf.Max(0.1f, materializationSearchStep);
+            int ringCount = Mathf.CeilToInt(maxMaterializationSearchRadius / step);
+            const int samplesPerRing = 16;
+
+            Vector2 travelDirection = desiredPosition - (Vector2)body.transform.position;
+            float baseAngle = travelDirection.sqrMagnitude > 0.001f
+                ? Mathf.Atan2(travelDirection.y, travelDirection.x)
+                : Mathf.PI * 0.5f;
+
+            for (int ring = 1; ring <= ringCount; ring++)
+            {
+                float radius = ring * step;
+                for (int sample = 0; sample < samplesPerRing; sample++)
+                {
+                    float angle = baseAngle + sample * (Mathf.PI * 2f / samplesPerRing);
+                    Vector2 candidate = desiredPosition + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+                    if (!IsMaterializationPositionClear(candidate)) continue;
+
+                    safePosition = candidate;
+                    return true;
+                }
+            }
+
+            safePosition = body.transform.position;
+            return false;
+        }
+
+        private bool IsMaterializationPositionClear(Vector2 bodyPosition)
+        {
+            Vector3 scale = body.transform.lossyScale;
+            Vector2 size = new Vector2(
+                _bodyStandingColliderSize.x * Mathf.Abs(scale.x),
+                _bodyStandingColliderSize.y * Mathf.Abs(scale.y));
+            Vector2 center = bodyPosition + new Vector2(
+                _bodyStandingColliderOffset.x * scale.x,
+                _bodyStandingColliderOffset.y * scale.y);
+
+            Collider2D[] overlaps = Physics2D.OverlapCapsuleAll(
+                center, size, _bodyCollider.direction,
+                body.transform.eulerAngles.z, materializationBlockingLayers);
+
+            foreach (Collider2D overlap in overlaps)
+            {
+                if (overlap != null && overlap != _bodyCollider && !overlap.isTrigger) return false;
+            }
+            return true;
+        }
+
+        private void SetCombatForm(bool soulActive)
+        {
+            if (bodyAttack != null) bodyAttack.SetInputEnabled(!soulActive);
+            if (soulAttack != null) soulAttack.SetInputEnabled(soulActive);
+        }
+
+        private bool HasRequiredReferences()
+        {
+            return input != null && body != null && soul != null && soulObject != null && cameraFollow != null;
+        }
+
+        private void OnValidate()
+        {
+            maxSoulDuration = Mathf.Max(0.1f, maxSoulDuration);
+            rechargeRate = Mathf.Max(0f, rechargeRate);
+            minEnergyToSeparate = Mathf.Clamp(minEnergyToSeparate, 0f, maxSoulDuration);
+            comfortableDistance = Mathf.Max(0f, comfortableDistance);
+            dangerDistance = Mathf.Max(comfortableDistance + 0.01f, dangerDistance);
+            maxDrainMultiplier = Mathf.Max(1f, maxDrainMultiplier);
+            forcedReturnLockout = Mathf.Max(0f, forcedReturnLockout);
+            maxMaterializationSearchRadius = Mathf.Max(0f, maxMaterializationSearchRadius);
+            materializationSearchStep = Mathf.Clamp(materializationSearchStep, 0.1f, 1f);
         }
     }
 }

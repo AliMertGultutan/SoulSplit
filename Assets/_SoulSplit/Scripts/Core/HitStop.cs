@@ -17,10 +17,16 @@ namespace SoulSplit.Core
         [SerializeField] private float frozenTimeScale = 0.02f;
 
         private Coroutine _routine;
-        private float _originalTimeScale = 1f;
+        private float _endRealtime;
 
         private void Awake()
         {
+            if (_instance != null && _instance != this)
+            {
+                Debug.LogWarning("[HitStop] Sahnede birden fazla host var; son eklenen devre disi birakildi.", this);
+                enabled = false;
+                return;
+            }
             _instance = this;
         }
 
@@ -33,28 +39,25 @@ namespace SoulSplit.Core
 
         private void TriggerInternal(float duration)
         {
-            if (_routine != null)
-            {
-                StopCoroutine(_routine);
-            }
-            else
-            {
-                _originalTimeScale = Time.timeScale;
-            }
-            _routine = StartCoroutine(Routine(duration));
+            _endRealtime = Mathf.Max(_endRealtime, Time.realtimeSinceStartup + duration);
+            if (_routine == null) _routine = StartCoroutine(Routine());
         }
 
-        private IEnumerator Routine(float duration)
+        private IEnumerator Routine()
         {
-            Time.timeScale = frozenTimeScale;
-            yield return new WaitForSecondsRealtime(duration);
-            Time.timeScale = _originalTimeScale;
+            TimeScaleController.SetHitStopScale(frozenTimeScale);
+            while (Time.realtimeSinceStartup < _endRealtime) yield return null;
+            TimeScaleController.ClearHitStop();
             _routine = null;
         }
 
+        private void OnValidate() => frozenTimeScale = Mathf.Clamp01(frozenTimeScale);
+
         private void OnDestroy()
         {
-            if (_instance == this) Time.timeScale = _originalTimeScale;
+            if (_instance != this) return;
+            _instance = null;
+            TimeScaleController.ClearHitStop();
         }
     }
 }

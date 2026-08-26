@@ -44,3 +44,16 @@ crashlytics-build.properties
 # OS
 .DS_Store
 Thumbs.db
+
+# Yerel ekran goruntuleri ve Unity kurtarma dosyalari
+/LocalCaptures/
+/Recovery/
+
+# Codex/yerel arac durumu
+/.codex/
+/.claude/
+/.mcp.json
+
+# Gecici Unity test sahneleri
+/Assets/InitTestScene*.unity
+/Assets/InitTestScene*.unity.meta

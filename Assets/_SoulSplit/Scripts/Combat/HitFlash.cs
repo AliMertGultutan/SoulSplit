@@ -38,6 +38,15 @@ namespace SoulSplit.Combat
         [SerializeField] private float deathShakeMagnitude = 0.14f;
         [SerializeField] private float shakeDuration = 0.14f;
 
+        [Header("Siddet Kademesi (Agir Vurus)")]
+        [Tooltip("Health.OnHit'ten gelen hasar miktari bu esigi veya ustunu gecerse 'agir vurus' sayilir.")]
+        [SerializeField] private int heavyDamageThreshold = 2;
+        [Tooltip("Agir vurusta ekranin donma suresi. Normal hasarla olum arasi bir agirlik.")]
+        [SerializeField] private float heavyHitStopDuration = 0.06f;
+        [Tooltip("Agir vurusta kamera sarsinti siddeti.")]
+        [SerializeField] private float heavyShakeMagnitude = 0.1f;
+        [SerializeField] private float heavyShakeDuration = 0.18f;
+
         private Color _baseColor;
         private Coroutine _routine;
 
@@ -58,16 +67,19 @@ namespace SoulSplit.Combat
             if (health != null) health.OnHit -= HandleHit;
         }
 
-        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection)
+        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection, int amount)
         {
             if (spriteRenderer == null) return;
 
             switch (result)
             {
                 case HitResult.Damaged:
+                    bool isHeavy = amount >= heavyDamageThreshold;
                     Flash(damagedColor, damagedFlashDuration);
-                    HitStop.Trigger(hitStopDuration);
-                    CameraFollow.ShakeCamera(shakeMagnitude, shakeDuration);
+                    HitStop.Trigger(isHeavy ? heavyHitStopDuration : hitStopDuration);
+                    CameraFollow.ShakeCamera(
+                        isHeavy ? heavyShakeMagnitude : shakeMagnitude,
+                        isHeavy ? heavyShakeDuration : shakeDuration);
                     break;
                 case HitResult.Killed:
                     Flash(damagedColor, damagedFlashDuration);
@@ -94,7 +106,11 @@ namespace SoulSplit.Combat
             flash.a = spriteRenderer.color.a;
             spriteRenderer.color = flash;
 
-            yield return new WaitForSeconds(duration);
+            // Gercek zamanli bekleme: HitStop, Time.timeScale'i dusurdugunde
+            // (bkz. HitStop.cs) WaitForSeconds burada olceklenmis zamanla
+            // calisirdi ve flash, hit-stop biter bitmez COK uzun surerdi —
+            // CameraFollow'un shake/punch-zoom'unda oldugu gibi unscaled kullan.
+            yield return new WaitForSecondsRealtime(duration);
 
             Color restored = _baseColor;
             restored.a = spriteRenderer.color.a;

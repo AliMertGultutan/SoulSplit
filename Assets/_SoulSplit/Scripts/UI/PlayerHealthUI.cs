@@ -58,7 +58,7 @@ namespace SoulSplit.UI
             if (health != null) health.OnHit -= HandleHit;
         }
 
-        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection)
+        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection, int amount)
         {
             if (result == HitResult.Damaged || result == HitResult.Killed)
             {

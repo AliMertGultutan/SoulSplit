@@ -135,6 +135,15 @@ namespace SoulSplit.Player
         /// <summary>Su an egiliyor mu? Gorsel/hitbox sistemleri okuyabilir.</summary>
         public bool IsCrouching => _isCrouching;
 
+        /// <summary>
+        /// Form degisimi/isinlanma gibi harici sistemlerin oyuncunun baktigi yonu
+        /// hareket girdisi beklemeden esitleyebilmesi icin.
+        /// </summary>
+        public void SetFacingDirection(int direction)
+        {
+            if (direction != 0) _facingDirection = direction > 0 ? 1 : -1;
+        }
+
         private void Awake()
         {
             _rb = GetComponent<Rigidbody2D>();

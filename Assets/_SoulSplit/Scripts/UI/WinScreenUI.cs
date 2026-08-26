@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SoulSplit.Core;
 
 namespace SoulSplit.UI
 {
@@ -16,14 +17,19 @@ namespace SoulSplit.UI
         public void Show()
         {
             if (panelRoot != null) panelRoot.SetActive(true);
-            Time.timeScale = 0f;
+            TimeScaleController.SetPaused(this, true);
         }
 
         /// <summary>Yeniden baslatma butonuna baglanir.</summary>
         public void Restart()
         {
-            Time.timeScale = 1f;
+            TimeScaleController.SetPaused(this, false);
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        private void OnDestroy()
+        {
+            TimeScaleController.SetPaused(this, false);
         }
     }
 }

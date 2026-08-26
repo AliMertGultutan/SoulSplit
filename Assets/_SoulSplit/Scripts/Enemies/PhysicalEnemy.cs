@@ -34,7 +34,17 @@ namespace SoulSplit.Enemies
         protected override void Awake()
         {
             base.Awake();
+            ResolvePlayerReferences();
             _patrolOrigin = transform.position;
+        }
+
+        private void ResolvePlayerReferences()
+        {
+            if (switchManager == null)
+                switchManager = FindAnyObjectByType<SoulSwitchManager>();
+
+            if (bodyTransform == null && switchManager != null)
+                bodyTransform = switchManager.BodyTransform;
         }
 
         /// <summary>Bu dusman icin hedef her zaman bedendir.</summary>

@@ -60,9 +60,11 @@ namespace SoulSplit.Combat
         /// <summary>
         /// Her vurusta tetiklenir — sonuc dahil. Efektler bunu dinler.
         /// Vector2, saldirganDAN hedefe dogru normalize yon (knockback icin);
-        /// cevresel olumde (Kill) sifir gelir.
+        /// cevresel olumde (Kill) sifir gelir. int, uygulanan hasar miktari —
+        /// tepki sistemleri bunu "siddet" (hafif/agir) sinyali olarak okur;
+        /// cevresel olumde (Kill) maxHealth gelir (en agir kabul edilsin diye).
         /// </summary>
-        public event Action<HitResult, DamageType, Vector2> OnHit;
+        public event Action<HitResult, DamageType, Vector2, int> OnHit;
         /// <summary>Can sifirlandiginda bir kez tetiklenir.</summary>
         public event Action OnDeath;
         /// <summary>Can degeri her degistiginde tetiklenir. UI bunu dinler.</summary>
@@ -73,6 +75,12 @@ namespace SoulSplit.Combat
             _current = maxHealth;
         }
 
+        private void OnValidate()
+        {
+            maxHealth = Mathf.Max(1, maxHealth);
+            invincibilityDuration = Mathf.Max(0f, invincibilityDuration);
+        }
+
         /// <summary>
         /// Hasar uygulamayi dener. Donen sonuc, cagiran tarafin
         /// dogru geri bildirimi (vurus mu, sekme mi) oynatmasi icin.
@@ -80,26 +88,28 @@ namespace SoulSplit.Combat
         /// <param name="hitDirection">Saldirgandan hedefe dogru normalize yon; knockback icin.</param>
         public HitResult TryTakeDamage(int amount, DamageType type, Vector2 hitDirection = default)
         {
+            int appliedAmount = Mathf.Max(1, amount);
+
             if (IsDead) return HitResult.Ignored;
 
             if (!IsVulnerableTo(type))
             {
-                OnHit?.Invoke(HitResult.Deflected, type, hitDirection);
+                OnHit?.Invoke(HitResult.Deflected, type, hitDirection, appliedAmount);
                 return HitResult.Deflected;
             }
 
             if (IsInvincible)
             {
-                OnHit?.Invoke(HitResult.Ignored, type, hitDirection);
+                OnHit?.Invoke(HitResult.Ignored, type, hitDirection, appliedAmount);
                 return HitResult.Ignored;
             }
 
-            _current = Mathf.Max(0, _current - Mathf.Max(1, amount));
+            _current = Mathf.Max(0, _current - appliedAmount);
             _invincibleUntil = Time.time + invincibilityDuration;
             OnHealthChanged?.Invoke();
 
             HitResult result = _current <= 0 ? HitResult.Killed : HitResult.Damaged;
-            OnHit?.Invoke(result, type, hitDirection);
+            OnHit?.Invoke(result, type, hitDirection, appliedAmount);
 
             if (result == HitResult.Killed) OnDeath?.Invoke();
             return result;
@@ -116,7 +126,7 @@ namespace SoulSplit.Combat
 
             _current = 0;
             OnHealthChanged?.Invoke();
-            OnHit?.Invoke(HitResult.Killed, DamageType.Physical, Vector2.zero);
+            OnHit?.Invoke(HitResult.Killed, DamageType.Physical, Vector2.zero, maxHealth);
             OnDeath?.Invoke();
         }
 

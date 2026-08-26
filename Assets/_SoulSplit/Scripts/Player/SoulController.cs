@@ -34,6 +34,12 @@ namespace SoulSplit.Player
         [SerializeField] private float driftAmount = 0.12f;
         [SerializeField] private float driftFrequency = 1.6f;
 
+        [Header("Gorsel Mod")]
+        [Tooltip("Vurus animasyonunu bu script'in kendi donme/lunge matematigiyle oynatir. " +
+                 "Sprite-sheet (Animator) kullaniliyorsa KAPAT — aksi halde iki efekt ust uste biner. " +
+                 "Drift salinimi her iki durumda da calismaya devam eder.")]
+        [SerializeField] private bool useAttackRotationOverlay = true;
+
         [Header("Dovus Animasyonu (hazirlik/vurus/TUTMA/toparlanma)")]
         [SerializeField] private float attackAnticipationDuration = 0.08f;
         [SerializeField] private float attackStrikeDuration = 0.045f;
@@ -44,13 +50,24 @@ namespace SoulSplit.Player
         [SerializeField] private float attackSwingAngle = 32f;
         [SerializeField] private float attackLungeDistance = 0.22f;
 
+        [Header("Dovus Animasyonu — Agir Saldiri")]
+        [SerializeField] private float heavyAttackAnticipationDuration = 0.16f;
+        [SerializeField] private float heavyAttackStrikeDuration = 0.05f;
+        [SerializeField] private float heavyAttackHoldDuration = 0.14f;
+        [SerializeField] private float heavyAttackRecoveryDuration = 0.28f;
+        [SerializeField] private float heavyAttackWindupAngle = 24f;
+        [SerializeField] private float heavyAttackSwingAngle = 46f;
+        [SerializeField] private float heavyAttackLungeDistance = 0.34f;
+
         private Rigidbody2D _rb;
         private int _facingDirection = 1;
         private float _driftPhase;
         private Vector3 _visualBasePosition;
 
         private float _attackTimer;
-        private float _attackTotalDuration;
+        private AttackOverlayTimings _lightAttackTimings;
+        private AttackOverlayTimings _heavyAttackTimings;
+        private AttackTier _attackTier = AttackTier.Light;
 
         /// <summary>Bakis yonu; gorsel cevirme icin.</summary>
         public int FacingDirection => _facingDirection;
@@ -68,7 +85,10 @@ namespace SoulSplit.Player
             if (spriteRenderer != null) _visualBasePosition = spriteRenderer.transform.localPosition;
             if (meleeAttack == null) meleeAttack = GetComponent<MeleeAttack>();
 
-            _attackTotalDuration = attackAnticipationDuration + attackStrikeDuration + attackHoldDuration + attackRecoveryDuration;
+            _lightAttackTimings = new AttackOverlayTimings(attackAnticipationDuration, attackStrikeDuration,
+                attackHoldDuration, attackRecoveryDuration, attackWindupAngle, attackSwingAngle, attackLungeDistance);
+            _heavyAttackTimings = new AttackOverlayTimings(heavyAttackAnticipationDuration, heavyAttackStrikeDuration,
+                heavyAttackHoldDuration, heavyAttackRecoveryDuration, heavyAttackWindupAngle, heavyAttackSwingAngle, heavyAttackLungeDistance);
         }
 
         private void OnEnable()
@@ -81,9 +101,10 @@ namespace SoulSplit.Player
             if (meleeAttack != null) meleeAttack.OnAttackTriggered -= HandleAttackTriggered;
         }
 
-        private void HandleAttackTriggered()
+        private void HandleAttackTriggered(AttackTier tier)
         {
-            _attackTimer = _attackTotalDuration;
+            _attackTier = tier;
+            _attackTimer = tier == AttackTier.Heavy ? _heavyAttackTimings.TotalDuration : _lightAttackTimings.TotalDuration;
         }
 
         /// <summary>SoulSwitchManager ruhu bedenden cikarirken cagirir.</summary>
@@ -110,7 +131,16 @@ namespace SoulSplit.Player
             Quaternion attackRotation = Quaternion.identity;
             if (_attackTimer > 0f)
             {
-                attackRotation = ComputeAttackRotation(ref offset);
+                if (useAttackRotationOverlay)
+                {
+                    attackRotation = ComputeAttackRotation(ref offset);
+                }
+                else
+                {
+                    // Gorseli Animator suruyor; ama sayac yine de islemeli ki
+                    // saldiri durumu normal suresinde sona ersin.
+                    _attackTimer -= Time.deltaTime;
+                }
             }
 
             spriteRenderer.transform.localPosition = _visualBasePosition + offset;
@@ -126,43 +156,13 @@ namespace SoulSplit.Player
         /// </summary>
         private Quaternion ComputeAttackRotation(ref Vector3 positionOffset)
         {
+            bool isHeavy = _attackTier == AttackTier.Heavy;
+            AttackOverlayTimings timings = isHeavy ? _heavyAttackTimings : _lightAttackTimings;
+
             _attackTimer -= Time.deltaTime;
-            float elapsed = _attackTotalDuration - Mathf.Max(_attackTimer, 0f);
+            float elapsed = timings.TotalDuration - Mathf.Max(_attackTimer, 0f);
 
-            float angle;
-            float lunge;
-
-            float strikeStart = attackAnticipationDuration;
-            float holdStart = strikeStart + attackStrikeDuration;
-            float recoveryStart = holdStart + attackHoldDuration;
-
-            if (elapsed < strikeStart)
-            {
-                float t = attackAnticipationDuration <= 0f ? 1f : elapsed / attackAnticipationDuration;
-                angle = Mathf.Lerp(0f, -attackWindupAngle, 1f - (1f - t) * (1f - t));
-                lunge = 0f;
-            }
-            else if (elapsed < holdStart)
-            {
-                float t = attackStrikeDuration <= 0f ? 1f : (elapsed - strikeStart) / attackStrikeDuration;
-                float inv = 1f - t;
-                float eased = 1f - inv * inv * inv;
-                angle = Mathf.Lerp(-attackWindupAngle, attackSwingAngle, eased);
-                lunge = Mathf.Lerp(0f, attackLungeDistance, eased);
-            }
-            else if (elapsed < recoveryStart)
-            {
-                angle = attackSwingAngle;
-                lunge = attackLungeDistance;
-            }
-            else
-            {
-                float recoveryDuration = Mathf.Max(0.001f, attackRecoveryDuration);
-                float t = (elapsed - recoveryStart) / recoveryDuration;
-                float eased = 1f - (1f - t) * (1f - t);
-                angle = Mathf.Lerp(attackSwingAngle, 0f, eased);
-                lunge = Mathf.Lerp(attackLungeDistance, 0f, eased);
-            }
+            AttackOverlayAnimator.Evaluate(timings, elapsed, out float angle, out float lunge);
 
             positionOffset += new Vector3(lunge * _facingDirection, 0f, 0f);
             return Quaternion.Euler(0f, 0f, angle * _facingDirection);
