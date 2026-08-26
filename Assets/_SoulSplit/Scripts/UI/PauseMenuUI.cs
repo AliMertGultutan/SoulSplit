@@ -17,7 +17,6 @@ namespace SoulSplit.UI
     {
         private const string GameplaySceneName = "SampleScene";
         private const string MainMenuSceneName = "MainMenu";
-        private const string MasterVolumeKey = "SoulSplit.MasterVolume";
 
         private static readonly Color BackdropColor = new Color(0.015f, 0.025f, 0.045f, 0.88f);
         private static readonly Color PanelColor = new Color(0.055f, 0.085f, 0.12f, 0.98f);
@@ -28,10 +27,8 @@ namespace SoulSplit.UI
 
         private GameObject _menuRoot;
         private Button _resumeButton;
-        private Text _volumeLabel;
-        private Slider _volumeSlider;
-        private Text _materializationLabel;
-        private Toggle _materializationToggle;
+        private Button _settingsButton;
+        private SettingsPanelUI _settingsPanel;
         private Font _font;
         private bool _isOpen;
         private bool _ownsEventSystem;
@@ -60,8 +57,8 @@ namespace SoulSplit.UI
         private void Awake()
         {
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            AudioListener.volume = Mathf.Clamp01(PlayerPrefs.GetFloat(MasterVolumeKey, 0.8f));
             EnsureEventSystem();
+            _settingsPanel = SettingsPanelUI.GetOrCreate();
             BuildInterface();
             SetMenuVisible(false);
         }
@@ -71,6 +68,12 @@ namespace SoulSplit.UI
             bool keyboardPressed = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
             bool gamepadPressed = Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame;
             if (!keyboardPressed && !gamepadPressed) return;
+
+            if (_settingsPanel != null && _settingsPanel.IsOpen)
+            {
+                _settingsPanel.Close();
+                return;
+            }
 
             if (_isOpen) Close();
             else Open();
@@ -99,12 +102,12 @@ namespace SoulSplit.UI
         {
             if (!_isOpen) return;
 
+            if (_settingsPanel != null && _settingsPanel.IsOpen) _settingsPanel.Close();
             _isOpen = false;
             SetMenuVisible(false);
             TimeScaleController.SetPaused(this, false);
             Cursor.lockState = _previousCursorLock;
             Cursor.visible = _previousCursorVisible;
-            SaveVolume();
         }
 
         public void RestartLevel()
@@ -120,35 +123,17 @@ namespace SoulSplit.UI
             SceneManager.LoadScene(MainMenuSceneName);
         }
 
-        private void SetVolume(float value)
+        public void OpenSettings()
         {
-            float clamped = Mathf.Clamp01(value);
-            AudioListener.volume = clamped;
-            if (_volumeLabel != null) _volumeLabel.text = $"ANA SES  {Mathf.RoundToInt(clamped * 100f)}%";
-        }
-
-        private void SaveVolume()
-        {
-            PlayerPrefs.SetFloat(MasterVolumeKey, AudioListener.volume);
-            PlayerPrefs.Save();
-        }
-
-        private void SetMaterializationPreference(bool enabled)
-        {
-            GameplaySettings.MaterializeAtSoulPosition = enabled;
-            if (_materializationLabel != null)
-            {
-                _materializationLabel.text = enabled
-                    ? "RUHTAN DÖNÜŞ  •  RUHUN YANINDA"
-                    : "RUHTAN DÖNÜŞ  •  BEDENİN ESKİ YERİNDE";
-            }
+            if (_settingsPanel != null)
+                _settingsPanel.Open(_settingsButton != null ? _settingsButton.gameObject : null);
         }
 
         private void ReleasePause()
         {
             _isOpen = false;
+            if (_settingsPanel != null && _settingsPanel.IsOpen) _settingsPanel.Close();
             TimeScaleController.SetPaused(this, false);
-            SaveVolume();
         }
 
         private void SetMenuVisible(bool visible)
@@ -187,38 +172,28 @@ namespace SoulSplit.UI
             GameObject panel = CreateUiObject("PausePanel", _menuRoot.transform, typeof(Image), typeof(Outline));
             RectTransform panelRect = panel.GetComponent<RectTransform>();
             panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(520f, 700f);
+            panelRect.sizeDelta = new Vector2(520f, 560f);
             panel.GetComponent<Image>().color = PanelColor;
             Outline panelOutline = panel.GetComponent<Outline>();
             panelOutline.effectColor = new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.42f);
             panelOutline.effectDistance = new Vector2(2f, -2f);
 
             CreateText(panel.transform, "Title", "OYUN DURAKLATILDI", 32, FontStyle.Bold,
-                new Vector2(0f, 270f), new Vector2(440f, 52f), Color.white);
+                new Vector2(0f, 215f), new Vector2(440f, 52f), Color.white);
             CreateText(panel.transform, "Subtitle", "Yolculuk seni bekliyor", 18, FontStyle.Normal,
-                new Vector2(0f, 229f), new Vector2(440f, 34f), new Color(0.68f, 0.75f, 0.80f));
+                new Vector2(0f, 174f), new Vector2(440f, 34f), new Color(0.68f, 0.75f, 0.80f));
 
             _resumeButton = CreateButton(panel.transform, "ResumeButton", "DEVAM ET",
-                new Vector2(0f, 160f), AccentColor, Close);
+                new Vector2(0f, 104f), AccentColor, Close);
             CreateButton(panel.transform, "RestartButton", "BÖLÜMÜ YENİDEN BAŞLAT",
-                new Vector2(0f, 86f), WarmAccentColor, RestartLevel);
-
-            _volumeLabel = CreateText(panel.transform, "VolumeLabel", string.Empty, 17, FontStyle.Bold,
-                new Vector2(0f, 18f), new Vector2(420f, 32f), new Color(0.80f, 0.86f, 0.90f));
-            _volumeSlider = CreateSlider(panel.transform, new Vector2(0f, -28f));
-            _volumeSlider.value = AudioListener.volume;
-            _volumeSlider.onValueChanged.AddListener(SetVolume);
-            SetVolume(_volumeSlider.value);
-
-            _materializationToggle = CreateToggle(panel.transform, new Vector2(0f, -112f),
-                GameplaySettings.MaterializeAtSoulPosition);
-            _materializationToggle.onValueChanged.AddListener(SetMaterializationPreference);
-            SetMaterializationPreference(_materializationToggle.isOn);
+                new Vector2(0f, 32f), WarmAccentColor, RestartLevel);
+            _settingsButton = CreateButton(panel.transform, "SettingsButton", "AYARLAR",
+                new Vector2(0f, -40f), AccentColor, OpenSettings);
 
             CreateButton(panel.transform, "MainMenuButton", "ANA MENÜYE DÖN",
-                new Vector2(0f, -205f), new Color(0.72f, 0.76f, 0.80f), ReturnToMainMenu);
+                new Vector2(0f, -112f), new Color(0.72f, 0.76f, 0.80f), ReturnToMainMenu);
             CreateText(panel.transform, "Footer", "ESC / START  •  Kapat", 15, FontStyle.Normal,
-                new Vector2(0f, -292f), new Vector2(420f, 30f), new Color(0.55f, 0.62f, 0.68f));
+                new Vector2(0f, -210f), new Vector2(420f, 30f), new Color(0.55f, 0.62f, 0.68f));
         }
 
         private Button CreateButton(Transform parent, string name, string label, Vector2 position,
@@ -252,99 +227,6 @@ namespace SoulSplit.UI
             CreateText(buttonObject.transform, "Label", label, 19, FontStyle.Bold,
                 Vector2.zero, rect.sizeDelta, Color.white, stretch: true);
             return button;
-        }
-
-        private Slider CreateSlider(Transform parent, Vector2 position)
-        {
-            GameObject sliderObject = CreateUiObject("MasterVolumeSlider", parent, typeof(Slider));
-            RectTransform sliderRect = sliderObject.GetComponent<RectTransform>();
-            sliderRect.anchorMin = sliderRect.anchorMax = new Vector2(0.5f, 0.5f);
-            sliderRect.anchoredPosition = position;
-            sliderRect.sizeDelta = new Vector2(420f, 44f);
-
-            GameObject background = CreateUiObject("Background", sliderObject.transform, typeof(Image));
-            RectTransform backgroundRect = background.GetComponent<RectTransform>();
-            backgroundRect.anchorMin = new Vector2(0f, 0.5f);
-            backgroundRect.anchorMax = new Vector2(1f, 0.5f);
-            backgroundRect.sizeDelta = new Vector2(0f, 10f);
-            background.GetComponent<Image>().color = new Color(0.16f, 0.22f, 0.27f, 1f);
-
-            GameObject fillArea = CreateUiObject("Fill Area", sliderObject.transform);
-            RectTransform fillAreaRect = fillArea.GetComponent<RectTransform>();
-            fillAreaRect.anchorMin = new Vector2(0f, 0.5f);
-            fillAreaRect.anchorMax = new Vector2(1f, 0.5f);
-            fillAreaRect.offsetMin = new Vector2(8f, -5f);
-            fillAreaRect.offsetMax = new Vector2(-8f, 5f);
-
-            GameObject fill = CreateUiObject("Fill", fillArea.transform, typeof(Image));
-            Stretch(fill.GetComponent<RectTransform>());
-            fill.GetComponent<Image>().color = AccentColor;
-
-            GameObject handleArea = CreateUiObject("Handle Slide Area", sliderObject.transform);
-            Stretch(handleArea.GetComponent<RectTransform>());
-            GameObject handle = CreateUiObject("Handle", handleArea.transform, typeof(Image), typeof(Outline));
-            RectTransform handleRect = handle.GetComponent<RectTransform>();
-            handleRect.sizeDelta = new Vector2(28f, 28f);
-            handle.GetComponent<Image>().color = Color.white;
-            handle.GetComponent<Outline>().effectColor = AccentColor;
-
-            Slider slider = sliderObject.GetComponent<Slider>();
-            slider.fillRect = fill.GetComponent<RectTransform>();
-            slider.handleRect = handleRect;
-            slider.targetGraphic = handle.GetComponent<Image>();
-            slider.direction = Slider.Direction.LeftToRight;
-            slider.minValue = 0f;
-            slider.maxValue = 1f;
-            slider.wholeNumbers = false;
-            return slider;
-        }
-
-        private Toggle CreateToggle(Transform parent, Vector2 position, bool initialValue)
-        {
-            GameObject toggleObject = CreateUiObject("MaterializeAtSoulToggle", parent,
-                typeof(Image), typeof(Toggle), typeof(Outline));
-            RectTransform rect = toggleObject.GetComponent<RectTransform>();
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(420f, 58f);
-
-            Image rowImage = toggleObject.GetComponent<Image>();
-            rowImage.color = ButtonColor;
-            Outline rowOutline = toggleObject.GetComponent<Outline>();
-            rowOutline.effectColor = new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.55f);
-            rowOutline.effectDistance = new Vector2(1f, -1f);
-
-            GameObject box = CreateUiObject("Box", toggleObject.transform, typeof(Image), typeof(Outline));
-            RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = boxRect.anchorMax = new Vector2(0f, 0.5f);
-            boxRect.anchoredPosition = new Vector2(30f, 0f);
-            boxRect.sizeDelta = new Vector2(30f, 30f);
-            box.GetComponent<Image>().color = new Color(0.06f, 0.09f, 0.12f, 1f);
-            box.GetComponent<Outline>().effectColor = AccentColor;
-
-            GameObject checkmark = CreateUiObject("Checkmark", box.transform, typeof(Image));
-            RectTransform checkmarkRect = checkmark.GetComponent<RectTransform>();
-            Stretch(checkmarkRect);
-            checkmarkRect.offsetMin = new Vector2(6f, 6f);
-            checkmarkRect.offsetMax = new Vector2(-6f, -6f);
-            checkmark.GetComponent<Image>().color = AccentColor;
-
-            _materializationLabel = CreateText(toggleObject.transform, "Label", string.Empty, 16,
-                FontStyle.Bold, new Vector2(42f, 0f), new Vector2(330f, 42f), Color.white);
-
-            Toggle toggle = toggleObject.GetComponent<Toggle>();
-            toggle.targetGraphic = rowImage;
-            toggle.graphic = checkmark.GetComponent<Image>();
-            toggle.isOn = initialValue;
-
-            ColorBlock colors = toggle.colors;
-            colors.normalColor = ButtonColor;
-            colors.highlightedColor = ButtonHighlightColor;
-            colors.selectedColor = new Color(0.15f, 0.28f, 0.34f, 1f);
-            colors.pressedColor = new Color(0.20f, 0.38f, 0.44f, 1f);
-            colors.fadeDuration = 0.1f;
-            toggle.colors = colors;
-            return toggle;
         }
 
         private Text CreateText(Transform parent, string name, string value, int fontSize,

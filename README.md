@@ -29,7 +29,8 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 - Beden ve ruh ortak can kullanır; beden savunmasız bırakılırsa oyuncu ölebilir.
 - Checkpoint tetikleri yeniden doğuş konumunu günceller.
 - Ulaşılan en ileri checkpoint otomatik kaydedilir; ana menüden oyuna devam edilebilir veya onay vererek yeni oyun başlatılabilir.
-- Duraklatma menüsünden oyuna dönülebilir, bölüm yeniden başlatılabilir, ana menüye dönülebilir ve ana ses seviyesi ayarlanabilir.
+- Ana menüden ve duraklatma menüsünden ortak Ayarlar ekranına ulaşılabilir.
+- Ana ses, kamera efekti yoğunluğu, vuruş donması, oyun ipuçları ve tam ekran tercihleri otomatik kaydedilir.
 - Duraklatma menüsündeki ruh dönüşü ayarıyla bedenin ruhun yanında mı yoksa bırakıldığı yerde mi kalacağı seçilebilir; tercih sonraki açılışlarda korunur.
 - Sıçrama, saldırı, hasar, sekme ve ruh geçişleri çalışma anında üretilen kısa seslerle geri bildirim verir; harici ses varlığı gerekmez.
 

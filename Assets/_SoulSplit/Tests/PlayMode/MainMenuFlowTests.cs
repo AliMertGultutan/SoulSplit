@@ -48,11 +48,13 @@ namespace SoulSplit.Tests
 
             Button playButton = GameObject.Find("OYNAButton")?.GetComponent<Button>();
             Button newGameButton = GameObject.Find("YENİ OYUNButton")?.GetComponent<Button>();
+            Button settingsButton = GameObject.Find("AYARLARButton")?.GetComponent<Button>();
             MainMenuUI menu = Object.FindAnyObjectByType<MainMenuUI>();
 
             Assert.That(playButton, Is.Not.Null);
             Assert.That(playButton.GetComponentInChildren<Text>().text, Is.EqualTo("DEVAM ET"));
             Assert.That(newGameButton, Is.Not.Null);
+            Assert.That(settingsButton, Is.Not.Null);
             Assert.That(menu, Is.Not.Null);
             Assert.That(EventSystem.current, Is.Not.Null);
             Assert.That(EventSystem.current.GetComponent<InputSystemUIInputModule>(), Is.Not.Null);
@@ -68,6 +70,13 @@ namespace SoulSplit.Tests
             Assert.That(confirmation.gameObject.activeSelf, Is.False);
             Assert.That(ProgressionSave.HasCheckpoint, Is.True,
                 "Vazgecmek mevcut kaydi korumalidir.");
+
+            ExecuteEvents.Execute(settingsButton.gameObject, new PointerEventData(EventSystem.current),
+                ExecuteEvents.pointerClickHandler);
+            SettingsPanelUI settingsPanel = Object.FindAnyObjectByType<SettingsPanelUI>();
+            Assert.That(settingsPanel, Is.Not.Null);
+            Assert.That(settingsPanel.IsOpen, Is.True);
+            settingsPanel.Close();
         }
 
         [UnityTest]

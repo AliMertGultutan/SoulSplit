@@ -1,3 +1,4 @@
+using SoulSplit.Core;
 using SoulSplit.Player;
 using UnityEngine;
 using UnityEngine.UI;
@@ -41,6 +42,15 @@ namespace SoulSplit.UI
 
         private void Update()
         {
+            if (!GameplaySettings.ContextualHintsEnabled)
+            {
+                _currentHint = null;
+                hintText.text = string.Empty;
+                _canvasGroup.alpha = Mathf.MoveTowards(
+                    _canvasGroup.alpha, 0f, fadeSpeed * Time.unscaledDeltaTime);
+                return;
+            }
+
             Transform activeForm = switchManager != null && switchManager.IsSoulActive
                 ? switchManager.SoulTransform
                 : player;
@@ -70,7 +80,12 @@ namespace SoulSplit.UI
                 return $"SALDIRI  <color={KeyColor}><b>[J]</b></color>     AĞIR SALDIRI  <color={KeyColor}><b>[K]</b></color>";
 
             if (x >= 34f && x < 48f)
-                return $"RUHU AYIR / BEDENLEŞ  <color={KeyColor}><b>[E]</b></color>     BEDEN RUHUN BULUNDUĞU YERDE OLUŞUR";
+            {
+                string returnRule = GameplaySettings.MaterializeAtSoulPosition
+                    ? "BEDEN RUHUN BULUNDUĞU YERDE OLUŞUR"
+                    : "BEDEN BIRAKTIĞIN YERDE KALIR";
+                return $"RUHU AYIR / BEDENLEŞ  <color={KeyColor}><b>[E]</b></color>     {returnRule}";
+            }
 
             if (x >= 56f && x < 74f)
                 return $"ÇİFT ZIPLAMA     <color={KeyColor}><b>[SPACE] [SPACE]</b></color>";

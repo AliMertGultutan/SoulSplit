@@ -120,7 +120,8 @@ namespace SoulSplit.Core
 
             _shakeTimer -= Time.unscaledDeltaTime;
             float falloff = Mathf.Clamp01(_shakeTimer / Mathf.Max(0.001f, _shakeDuration));
-            _shakeOffset = Random.insideUnitCircle * _shakeMagnitude * falloff;
+            _shakeOffset = Random.insideUnitCircle * _shakeMagnitude * falloff *
+                           GameplaySettings.CameraEffectsIntensity;
         }
 
         /// <summary>Gercek zamanli calisir; hit-stop sirasinda bile ani yakinlastirma hissedilsin diye.</summary>
@@ -138,7 +139,8 @@ namespace SoulSplit.Core
             float t = Mathf.Clamp01(_punchTimer / Mathf.Max(0.001f, _punchDuration));
             // Hizli icine gir, yavas geri don (ease-out) — darbe hissi.
             float eased = t * t;
-            _camera.orthographicSize = _baseOrthoSize - _punchStrength * eased;
+            _camera.orthographicSize = _baseOrthoSize - _punchStrength * eased *
+                                       GameplaySettings.CameraEffectsIntensity;
         }
     }
 }

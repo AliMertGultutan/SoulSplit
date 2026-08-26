@@ -155,9 +155,14 @@ namespace SoulSplit.Tests
             Assert.That(body, Is.Not.Null);
 
             pauseMenu.Open();
+            pauseMenu.OpenSettings();
+            SettingsPanelUI settingsPanel = Object.FindAnyObjectByType<SettingsPanelUI>();
+            Assert.That(settingsPanel, Is.Not.Null);
+            Assert.That(settingsPanel.IsOpen, Is.True);
             Toggle toggle = GameObject.Find("MaterializeAtSoulToggle")?.GetComponent<Toggle>();
             Assert.That(toggle, Is.Not.Null);
             toggle.isOn = false;
+            settingsPanel.Close();
             pauseMenu.Close();
             Assert.That(GameplaySettings.MaterializeAtSoulPosition, Is.False);
 

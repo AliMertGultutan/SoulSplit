@@ -1,6 +1,7 @@
 using SoulSplit.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -19,6 +20,8 @@ namespace SoulSplit.UI
         private Button _playButton;
         private Button _quitButton;
         private Button _newGameButton;
+        private Button _settingsButton;
+        private SettingsPanelUI _settingsPanel;
         private GameObject _confirmationRoot;
         private Button _cancelButton;
         private Text _playLabel;
@@ -30,8 +33,18 @@ namespace SoulSplit.UI
             _playButton = GameObject.Find("OYNAButton")?.GetComponent<Button>();
             _quitButton = GameObject.Find("CIKISButton")?.GetComponent<Button>();
             _playLabel = _playButton != null ? _playButton.GetComponentInChildren<Text>(true) : null;
+            _settingsPanel = SettingsPanelUI.GetOrCreate();
 
             ConfigureMenu();
+        }
+
+        private void Update()
+        {
+            if (_settingsPanel == null || !_settingsPanel.IsOpen) return;
+
+            bool keyboardPressed = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
+            bool gamepadPressed = Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame;
+            if (keyboardPressed || gamepadPressed) _settingsPanel.Close();
         }
 
         private static void EnsureEventSystem()
@@ -90,6 +103,12 @@ namespace SoulSplit.UI
             SceneManager.LoadScene(gameSceneName);
         }
 
+        public void OpenSettings()
+        {
+            if (_settingsPanel != null)
+                _settingsPanel.Open(_settingsButton != null ? _settingsButton.gameObject : null);
+        }
+
         public void QuitGame()
         {
             Application.Quit();
@@ -102,67 +121,73 @@ namespace SoulSplit.UI
         {
             if (_playButton == null || _quitButton == null) return;
 
-            if (!ProgressionSave.HasCheckpoint)
+            bool hasCheckpoint = ProgressionSave.HasCheckpoint;
+            SetLabel(_playButton, hasCheckpoint ? "DEVAM ET" : "OYNA");
+
+            if (hasCheckpoint)
             {
-                SetLabel(_playButton, "OYNA");
-                ConfigureNavigationWithoutSave();
-                return;
+                _newGameButton = Instantiate(_playButton, _playButton.transform.parent);
+                _newGameButton.name = "YENİ OYUNButton";
+                _newGameButton.onClick = new Button.ButtonClickedEvent();
+                _newGameButton.onClick.AddListener(StartNewGame);
+                SetLabel(_newGameButton, "YENİ OYUN");
+
+                RectTransform newGameRect = _newGameButton.GetComponent<RectTransform>();
+                newGameRect.anchorMin = newGameRect.anchorMax = new Vector2(0.5f, 0.30f);
+                newGameRect.anchoredPosition = Vector2.zero;
+                Image newGameImage = _newGameButton.GetComponent<Image>();
+                if (newGameImage != null) newGameImage.color = new Color(0.58f, 0.43f, 0.31f, 0.94f);
+
+                BuildConfirmation();
             }
 
-            SetLabel(_playButton, "DEVAM ET");
-            _newGameButton = Instantiate(_playButton, _playButton.transform.parent);
-            _newGameButton.name = "YENİ OYUNButton";
-            _newGameButton.onClick = new Button.ButtonClickedEvent();
-            _newGameButton.onClick.AddListener(StartNewGame);
-            SetLabel(_newGameButton, "YENİ OYUN");
-
-            RectTransform newGameRect = _newGameButton.GetComponent<RectTransform>();
-            newGameRect.anchorMin = newGameRect.anchorMax = new Vector2(0.5f, 0.30f);
-            newGameRect.anchoredPosition = Vector2.zero;
-            Image newGameImage = _newGameButton.GetComponent<Image>();
-            if (newGameImage != null) newGameImage.color = new Color(0.58f, 0.43f, 0.31f, 0.94f);
+            _settingsButton = Instantiate(_playButton, _playButton.transform.parent);
+            _settingsButton.name = "AYARLARButton";
+            _settingsButton.onClick = new Button.ButtonClickedEvent();
+            _settingsButton.onClick.AddListener(OpenSettings);
+            SetLabel(_settingsButton, "AYARLAR");
+            RectTransform settingsRect = _settingsButton.GetComponent<RectTransform>();
+            float settingsAnchor = hasCheckpoint ? 0.18f : 0.30f;
+            settingsRect.anchorMin = settingsRect.anchorMax = new Vector2(0.5f, settingsAnchor);
+            settingsRect.anchoredPosition = Vector2.zero;
+            Image settingsImage = _settingsButton.GetComponent<Image>();
+            if (settingsImage != null) settingsImage.color = new Color(0.22f, 0.40f, 0.48f, 0.94f);
 
             RectTransform quitRect = _quitButton.GetComponent<RectTransform>();
-            quitRect.anchorMin = quitRect.anchorMax = new Vector2(0.5f, 0.18f);
+            float quitAnchor = hasCheckpoint ? 0.06f : 0.18f;
+            quitRect.anchorMin = quitRect.anchorMax = new Vector2(0.5f, quitAnchor);
             quitRect.anchoredPosition = Vector2.zero;
 
-            BuildConfirmation();
-            ConfigureNavigationWithSave();
+            ConfigureNavigation(hasCheckpoint);
         }
 
-        private void ConfigureNavigationWithoutSave()
+        private void ConfigureNavigation(bool hasCheckpoint)
         {
             Navigation playNavigation = _playButton.navigation;
             playNavigation.mode = Navigation.Mode.Explicit;
-            playNavigation.selectOnDown = _quitButton;
+            playNavigation.selectOnDown = hasCheckpoint ? _newGameButton : _settingsButton;
             playNavigation.selectOnUp = _quitButton;
             _playButton.navigation = playNavigation;
+
+            if (_newGameButton != null)
+            {
+                Navigation newGameNavigation = _newGameButton.navigation;
+                newGameNavigation.mode = Navigation.Mode.Explicit;
+                newGameNavigation.selectOnDown = _settingsButton;
+                newGameNavigation.selectOnUp = _playButton;
+                _newGameButton.navigation = newGameNavigation;
+            }
+
+            Navigation settingsNavigation = _settingsButton.navigation;
+            settingsNavigation.mode = Navigation.Mode.Explicit;
+            settingsNavigation.selectOnDown = _quitButton;
+            settingsNavigation.selectOnUp = hasCheckpoint ? _newGameButton : _playButton;
+            _settingsButton.navigation = settingsNavigation;
 
             Navigation quitNavigation = _quitButton.navigation;
             quitNavigation.mode = Navigation.Mode.Explicit;
             quitNavigation.selectOnDown = _playButton;
-            quitNavigation.selectOnUp = _playButton;
-            _quitButton.navigation = quitNavigation;
-        }
-
-        private void ConfigureNavigationWithSave()
-        {
-            Navigation playNavigation = _playButton.navigation;
-            playNavigation.mode = Navigation.Mode.Explicit;
-            playNavigation.selectOnDown = _newGameButton;
-            playNavigation.selectOnUp = _quitButton;
-            _playButton.navigation = playNavigation;
-
-            Navigation newGameNavigation = _newGameButton.navigation;
-            newGameNavigation.mode = Navigation.Mode.Explicit;
-            newGameNavigation.selectOnDown = _quitButton;
-            newGameNavigation.selectOnUp = _playButton;
-            _newGameButton.navigation = newGameNavigation;
-
-            Navigation quitNavigation = _quitButton.navigation;
-            quitNavigation.mode = Navigation.Mode.Explicit;
-            quitNavigation.selectOnDown = _playButton;
-            quitNavigation.selectOnUp = _newGameButton;
+            quitNavigation.selectOnUp = _settingsButton;
             _quitButton.navigation = quitNavigation;
         }
 
