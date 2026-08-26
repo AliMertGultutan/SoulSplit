@@ -30,6 +30,7 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 - Checkpoint tetikleri yeniden doğuş konumunu günceller.
 - Ulaşılan en ileri checkpoint otomatik kaydedilir; ana menüden oyuna devam edilebilir veya onay vererek yeni oyun başlatılabilir.
 - Duraklatma menüsünden oyuna dönülebilir, bölüm yeniden başlatılabilir, ana menüye dönülebilir ve ana ses seviyesi ayarlanabilir.
+- Duraklatma menüsündeki ruh dönüşü ayarıyla bedenin ruhun yanında mı yoksa bırakıldığı yerde mi kalacağı seçilebilir; tercih sonraki açılışlarda korunur.
 - Sıçrama, saldırı, hasar, sekme ve ruh geçişleri çalışma anında üretilen kısa seslerle geri bildirim verir; harici ses varlığı gerekmez.
 
 ## Geliştirme

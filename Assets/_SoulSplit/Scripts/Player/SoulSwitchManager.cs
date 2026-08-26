@@ -53,8 +53,6 @@ namespace SoulSplit.Player
         [SerializeField] private float forcedReturnLockout = 1f;
 
         [Header("Ruhun Konumunda Bedenlesme")]
-        [Tooltip("Ruh formu kapatildiginda bedeni ruhun bulundugu konuma tasir.")]
-        [SerializeField] private bool materializeAtSoulPosition = true;
         [Tooltip("Bedenlesme noktasini engelleyen katmanlar. Varsayilan: Ground.")]
         [SerializeField] private LayerMask materializationBlockingLayers = 1 << 8;
         [Tooltip("Ruh bir duvarin icindeyse en fazla bu yaricapta guvenli bosluk aranir.")]
@@ -213,7 +211,7 @@ namespace SoulSplit.Player
             IsSoulActive = false;
 
             Vector2 soulPosition = soul.transform.position;
-            bool didMaterialize = materializeAtSoul && materializeAtSoulPosition &&
+            bool didMaterialize = materializeAtSoul && GameplaySettings.MaterializeAtSoulPosition &&
                                   TryMaterializeBody(soulPosition);
 
             soul.enabled = false;

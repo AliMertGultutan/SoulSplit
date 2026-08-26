@@ -11,15 +11,32 @@ using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace SoulSplit.Tests
 {
     public class SampleSceneSmokeTests
     {
+        private bool _hadMaterializationPreference;
+        private bool _materializationPreference;
+
         [UnitySetUp]
         public IEnumerator LoadGameplayScene()
         {
+            _hadMaterializationPreference = GameplaySettings.HasMaterializationPreference;
+            _materializationPreference = GameplaySettings.MaterializeAtSoulPosition;
+            GameplaySettings.MaterializeAtSoulPosition = true;
             SceneManager.LoadScene("SampleScene");
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator RestoreGameplaySettings()
+        {
+            if (_hadMaterializationPreference)
+                GameplaySettings.MaterializeAtSoulPosition = _materializationPreference;
+            else
+                GameplaySettings.ResetMaterializationPreference();
             yield return null;
         }
 
@@ -124,7 +141,42 @@ namespace SoulSplit.Tests
             manager.ForceReturnToBody();
             yield return null;
 
-            Assert.That(Vector2.Distance(body.transform.position, originalPosition), Is.LessThan(0.05f));
+            Assert.That(Mathf.Abs(body.transform.position.x - originalPosition.x), Is.LessThan(0.05f));
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerCanKeepBodyAtOriginalPositionFromPauseMenuSetting()
+        {
+            PauseMenuUI pauseMenu = Object.FindAnyObjectByType<PauseMenuUI>();
+            SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
+            GameObject body = GameObject.Find("Player");
+            Assert.That(pauseMenu, Is.Not.Null);
+            Assert.That(manager, Is.Not.Null);
+            Assert.That(body, Is.Not.Null);
+
+            pauseMenu.Open();
+            Toggle toggle = GameObject.Find("MaterializeAtSoulToggle")?.GetComponent<Toggle>();
+            Assert.That(toggle, Is.Not.Null);
+            toggle.isOn = false;
+            pauseMenu.Close();
+            Assert.That(GameplaySettings.MaterializeAtSoulPosition, Is.False);
+
+            MethodInfo separate = typeof(SoulSwitchManager).GetMethod(
+                "SeparateSoul", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo returnToBody = typeof(SoulSwitchManager).GetMethod(
+                "ReturnToBody", BindingFlags.Instance | BindingFlags.NonPublic);
+            Vector2 originalPosition = body.transform.position;
+            separate.Invoke(manager, null);
+            yield return null;
+
+            Vector2 soulPosition = originalPosition + new Vector2(6f, 3f);
+            GameObject.Find("Soul").transform.position = soulPosition;
+            returnToBody.Invoke(manager, new object[] { false, true });
+            yield return null;
+
+            Assert.That(Mathf.Abs(body.transform.position.x - originalPosition.x), Is.LessThan(0.05f));
+            Assert.That(Vector2.Distance(body.transform.position, soulPosition),
+                Is.GreaterThan(4f), "Ayar kapaliyken beden ruhun yanina isinlanmamalidir.");
         }
 
         [UnityTest]

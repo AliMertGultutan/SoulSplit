@@ -30,6 +30,8 @@ namespace SoulSplit.UI
         private Button _resumeButton;
         private Text _volumeLabel;
         private Slider _volumeSlider;
+        private Text _materializationLabel;
+        private Toggle _materializationToggle;
         private Font _font;
         private bool _isOpen;
         private bool _ownsEventSystem;
@@ -131,6 +133,17 @@ namespace SoulSplit.UI
             PlayerPrefs.Save();
         }
 
+        private void SetMaterializationPreference(bool enabled)
+        {
+            GameplaySettings.MaterializeAtSoulPosition = enabled;
+            if (_materializationLabel != null)
+            {
+                _materializationLabel.text = enabled
+                    ? "RUHTAN DÖNÜŞ  •  RUHUN YANINDA"
+                    : "RUHTAN DÖNÜŞ  •  BEDENİN ESKİ YERİNDE";
+            }
+        }
+
         private void ReleasePause()
         {
             _isOpen = false;
@@ -174,33 +187,38 @@ namespace SoulSplit.UI
             GameObject panel = CreateUiObject("PausePanel", _menuRoot.transform, typeof(Image), typeof(Outline));
             RectTransform panelRect = panel.GetComponent<RectTransform>();
             panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(520f, 610f);
+            panelRect.sizeDelta = new Vector2(520f, 700f);
             panel.GetComponent<Image>().color = PanelColor;
             Outline panelOutline = panel.GetComponent<Outline>();
             panelOutline.effectColor = new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.42f);
             panelOutline.effectDistance = new Vector2(2f, -2f);
 
             CreateText(panel.transform, "Title", "OYUN DURAKLATILDI", 32, FontStyle.Bold,
-                new Vector2(0f, 225f), new Vector2(440f, 52f), Color.white);
+                new Vector2(0f, 270f), new Vector2(440f, 52f), Color.white);
             CreateText(panel.transform, "Subtitle", "Yolculuk seni bekliyor", 18, FontStyle.Normal,
-                new Vector2(0f, 184f), new Vector2(440f, 34f), new Color(0.68f, 0.75f, 0.80f));
+                new Vector2(0f, 229f), new Vector2(440f, 34f), new Color(0.68f, 0.75f, 0.80f));
 
             _resumeButton = CreateButton(panel.transform, "ResumeButton", "DEVAM ET",
-                new Vector2(0f, 112f), AccentColor, Close);
+                new Vector2(0f, 160f), AccentColor, Close);
             CreateButton(panel.transform, "RestartButton", "BÖLÜMÜ YENİDEN BAŞLAT",
-                new Vector2(0f, 38f), WarmAccentColor, RestartLevel);
+                new Vector2(0f, 86f), WarmAccentColor, RestartLevel);
 
             _volumeLabel = CreateText(panel.transform, "VolumeLabel", string.Empty, 17, FontStyle.Bold,
-                new Vector2(0f, -30f), new Vector2(420f, 32f), new Color(0.80f, 0.86f, 0.90f));
-            _volumeSlider = CreateSlider(panel.transform, new Vector2(0f, -76f));
+                new Vector2(0f, 18f), new Vector2(420f, 32f), new Color(0.80f, 0.86f, 0.90f));
+            _volumeSlider = CreateSlider(panel.transform, new Vector2(0f, -28f));
             _volumeSlider.value = AudioListener.volume;
             _volumeSlider.onValueChanged.AddListener(SetVolume);
             SetVolume(_volumeSlider.value);
 
+            _materializationToggle = CreateToggle(panel.transform, new Vector2(0f, -112f),
+                GameplaySettings.MaterializeAtSoulPosition);
+            _materializationToggle.onValueChanged.AddListener(SetMaterializationPreference);
+            SetMaterializationPreference(_materializationToggle.isOn);
+
             CreateButton(panel.transform, "MainMenuButton", "ANA MENÜYE DÖN",
-                new Vector2(0f, -158f), new Color(0.72f, 0.76f, 0.80f), ReturnToMainMenu);
+                new Vector2(0f, -205f), new Color(0.72f, 0.76f, 0.80f), ReturnToMainMenu);
             CreateText(panel.transform, "Footer", "ESC / START  •  Kapat", 15, FontStyle.Normal,
-                new Vector2(0f, -240f), new Vector2(420f, 30f), new Color(0.55f, 0.62f, 0.68f));
+                new Vector2(0f, -292f), new Vector2(420f, 30f), new Color(0.55f, 0.62f, 0.68f));
         }
 
         private Button CreateButton(Transform parent, string name, string label, Vector2 position,
@@ -279,6 +297,54 @@ namespace SoulSplit.UI
             slider.maxValue = 1f;
             slider.wholeNumbers = false;
             return slider;
+        }
+
+        private Toggle CreateToggle(Transform parent, Vector2 position, bool initialValue)
+        {
+            GameObject toggleObject = CreateUiObject("MaterializeAtSoulToggle", parent,
+                typeof(Image), typeof(Toggle), typeof(Outline));
+            RectTransform rect = toggleObject.GetComponent<RectTransform>();
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(420f, 58f);
+
+            Image rowImage = toggleObject.GetComponent<Image>();
+            rowImage.color = ButtonColor;
+            Outline rowOutline = toggleObject.GetComponent<Outline>();
+            rowOutline.effectColor = new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.55f);
+            rowOutline.effectDistance = new Vector2(1f, -1f);
+
+            GameObject box = CreateUiObject("Box", toggleObject.transform, typeof(Image), typeof(Outline));
+            RectTransform boxRect = box.GetComponent<RectTransform>();
+            boxRect.anchorMin = boxRect.anchorMax = new Vector2(0f, 0.5f);
+            boxRect.anchoredPosition = new Vector2(30f, 0f);
+            boxRect.sizeDelta = new Vector2(30f, 30f);
+            box.GetComponent<Image>().color = new Color(0.06f, 0.09f, 0.12f, 1f);
+            box.GetComponent<Outline>().effectColor = AccentColor;
+
+            GameObject checkmark = CreateUiObject("Checkmark", box.transform, typeof(Image));
+            RectTransform checkmarkRect = checkmark.GetComponent<RectTransform>();
+            Stretch(checkmarkRect);
+            checkmarkRect.offsetMin = new Vector2(6f, 6f);
+            checkmarkRect.offsetMax = new Vector2(-6f, -6f);
+            checkmark.GetComponent<Image>().color = AccentColor;
+
+            _materializationLabel = CreateText(toggleObject.transform, "Label", string.Empty, 16,
+                FontStyle.Bold, new Vector2(42f, 0f), new Vector2(330f, 42f), Color.white);
+
+            Toggle toggle = toggleObject.GetComponent<Toggle>();
+            toggle.targetGraphic = rowImage;
+            toggle.graphic = checkmark.GetComponent<Image>();
+            toggle.isOn = initialValue;
+
+            ColorBlock colors = toggle.colors;
+            colors.normalColor = ButtonColor;
+            colors.highlightedColor = ButtonHighlightColor;
+            colors.selectedColor = new Color(0.15f, 0.28f, 0.34f, 1f);
+            colors.pressedColor = new Color(0.20f, 0.38f, 0.44f, 1f);
+            colors.fadeDuration = 0.1f;
+            toggle.colors = colors;
+            return toggle;
         }
 
         private Text CreateText(Transform parent, string name, string value, int fontSize,
