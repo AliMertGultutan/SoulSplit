@@ -4,6 +4,8 @@ using NUnit.Framework;
 using SoulSplit.Core;
 using SoulSplit.UI;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -52,8 +54,11 @@ namespace SoulSplit.Tests
             Assert.That(playButton.GetComponentInChildren<Text>().text, Is.EqualTo("DEVAM ET"));
             Assert.That(newGameButton, Is.Not.Null);
             Assert.That(menu, Is.Not.Null);
+            Assert.That(EventSystem.current, Is.Not.Null);
+            Assert.That(EventSystem.current.GetComponent<InputSystemUIInputModule>(), Is.Not.Null);
 
-            menu.StartNewGame();
+            ExecuteEvents.Execute(newGameButton.gameObject, new PointerEventData(EventSystem.current),
+                ExecuteEvents.pointerClickHandler);
             Transform confirmation = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include)
                 .FirstOrDefault(item => item.name == "NewGameConfirmation");
             Assert.That(confirmation, Is.Not.Null);

@@ -1,6 +1,7 @@
 using SoulSplit.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -24,11 +25,30 @@ namespace SoulSplit.UI
 
         private void Awake()
         {
+            EnsureEventSystem();
+
             _playButton = GameObject.Find("OYNAButton")?.GetComponent<Button>();
             _quitButton = GameObject.Find("CIKISButton")?.GetComponent<Button>();
             _playLabel = _playButton != null ? _playButton.GetComponentInChildren<Text>(true) : null;
 
             ConfigureMenu();
+        }
+
+        private static void EnsureEventSystem()
+        {
+            EventSystem eventSystem = EventSystem.current ?? FindAnyObjectByType<EventSystem>();
+            if (eventSystem == null)
+            {
+                GameObject eventSystemObject = new GameObject("EventSystem", typeof(EventSystem));
+                eventSystem = eventSystemObject.GetComponent<EventSystem>();
+            }
+
+            InputSystemUIInputModule inputModule = eventSystem.GetComponent<InputSystemUIInputModule>();
+            if (inputModule == null)
+                inputModule = eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+
+            if (inputModule.actionsAsset == null)
+                inputModule.AssignDefaultActions();
         }
 
         private void Start()

@@ -3,6 +3,7 @@
   "rootNamespace": "SoulSplit.Tests",
   "references": [
     "SoulSplit.Runtime",
+    "Unity.InputSystem",
     "Unity.RenderPipelines.Universal.2D.Runtime"
   ],
   "includePlatforms": [],
