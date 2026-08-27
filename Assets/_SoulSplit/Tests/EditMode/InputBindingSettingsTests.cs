@@ -40,6 +40,19 @@ namespace SoulSplit.Tests
         }
 
         [Test]
+        public void KeyboardDisplayHelper_ReflectsCurrentOverride()
+        {
+            Assert.That(InputBindingSettings.TryGetKeyboardBinding("SoulSwitch", null,
+                out InputAction action, out int bindingIndex), Is.True);
+
+            action.ApplyBindingOverride(bindingIndex, "<Keyboard>/r");
+
+            Assert.That(InputBindingSettings.GetKeyboardDisplayName("SoulSwitch"), Is.EqualTo("R"));
+            Assert.That(InputBindingSettings.GetKeyboardDisplayName("MissingAction", fallback: "YOK"),
+                Is.EqualTo("YOK"));
+        }
+
+        [Test]
         public void DuplicateKeyboardBinding_ReportsExistingAction()
         {
             Assert.That(InputBindingSettings.TryGetKeyboardBinding("Jump", null,

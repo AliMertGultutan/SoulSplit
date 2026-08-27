@@ -24,6 +24,7 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 
 Klavye kontrolleri ana menü veya duraklatma menüsündeki `Ayarlar > Klavye Tuşlarını Ayarla`
 ekranından değiştirilebilir. Atamalar otomatik kaydedilir; çakışan tuşlar kabul edilmez.
+Oyun içi yönlendirmeler de varsayılan tuşlar yerine oyuncunun etkin atamalarını gösterir.
 
 ## Oyun kuralları
 
@@ -37,6 +38,7 @@ ekranından değiştirilebilir. Atamalar otomatik kaydedilir; çakışan tuşlar
 - Ana menüden ve duraklatma menüsünden ortak Ayarlar ekranına ulaşılabilir.
 - Ana ses, kamera efekti yoğunluğu, vuruş donması, oyun ipuçları ve tam ekran tercihleri otomatik kaydedilir.
 - Duraklatma menüsündeki ruh dönüşü ayarıyla bedenin ruhun yanında mı yoksa bırakıldığı yerde mi kalacağı seçilebilir; tercih sonraki açılışlarda korunur.
+- Ruh formundayken bedenin döneceği yer dünya üzerinde önizlenir; güvenli nokta, engelli nokta ve bedenin yerinde kalması renk ile birlikte açık metinle belirtilir.
 - Sıçrama, saldırı, hasar, sekme ve ruh geçişleri çalışma anında üretilen kısa seslerle geri bildirim verir; harici ses varlığı gerekmez.
 
 ## Geliştirme

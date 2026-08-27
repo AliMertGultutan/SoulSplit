@@ -203,6 +203,49 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
+        public IEnumerator SoulForm_ShowsMaterializationPreviewWithTextStatus()
+        {
+            SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
+            Assert.That(manager, Is.Not.Null);
+            Assert.That(manager.GetComponent<SoulMaterializationPreview>(), Is.Not.Null,
+                "Bedenlesme onizlemesi oyun baslarken otomatik kurulmalidir.");
+
+            MethodInfo separate = typeof(SoulSwitchManager).GetMethod(
+                "SeparateSoul", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(separate, Is.Not.Null);
+            separate.Invoke(manager, null);
+            yield return null;
+
+            SoulMaterializationPreview preview = manager.GetComponent<SoulMaterializationPreview>();
+            Assert.That(preview.IsVisible, Is.True);
+            Assert.That(preview.IsSafe, Is.True);
+            Assert.That(preview.StatusText, Does.Contain("BEDENLEŞME"));
+        }
+
+        [UnityTest]
+        public IEnumerator MaterializationSettingOff_PreviewTracksBody()
+        {
+            SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
+            GameObject body = GameObject.Find("Player");
+            Assert.That(manager, Is.Not.Null);
+            Assert.That(body, Is.Not.Null);
+
+            MethodInfo separate = typeof(SoulSwitchManager).GetMethod(
+                "SeparateSoul", BindingFlags.Instance | BindingFlags.NonPublic);
+            separate.Invoke(manager, null);
+            yield return null;
+
+            GameplaySettings.MaterializeAtSoulPosition = false;
+            yield return new WaitForSecondsRealtime(0.1f);
+
+            SoulMaterializationPreview preview = manager.GetComponent<SoulMaterializationPreview>();
+            Assert.That(preview.IsVisible, Is.True);
+            Assert.That(preview.StatusText, Does.Contain("BEDEN BURADA"));
+            Assert.That(Vector2.Distance(preview.PreviewPosition, body.transform.position), Is.LessThan(0.12f),
+                "Ayar kapaliyken onizleme, yercekimiyle oturmus olsa da bedenin guncel konumunu izlemelidir.");
+        }
+
+        [UnityTest]
         public IEnumerator SystemReturn_KeepsBodyAtItsOriginalPosition()
         {
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();

@@ -70,46 +70,62 @@ namespace SoulSplit.UI
 
         private string GetHint(float x)
         {
+            string left = Key("Move", "left", "A");
+            string right = Key("Move", "right", "D");
+            string down = Key("Move", "down", "S");
+            string jump = Key("Jump", fallback: "SPACE");
+            string lightAttack = Key("Attack", fallback: "J");
+            string heavyAttack = Key("HeavyAttack", fallback: "K");
+            string soulSwitch = Key("SoulSwitch", fallback: "E");
+            string ultimate = Key("Ultimate", fallback: "Q");
+
             if (x < 3.5f)
-                return $"HAREKET  <color={KeyColor}><b>[A] [D]</b></color>     ZIPLA  <color={KeyColor}><b>[SPACE]</b></color>";
+                return $"HAREKET  {left} {right}     ZIPLA  {jump}";
 
             if (x < 9.5f)
-                return $"ALÇAK GEÇİT     <color={KeyColor}><b>[S]</b></color> BASILI TUT";
+                return $"ALÇAK GEÇİT     {down} BASILI TUT";
 
             if (x < 22f)
-                return $"SALDIRI  <color={KeyColor}><b>[J]</b></color>     AĞIR SALDIRI  <color={KeyColor}><b>[K]</b></color>";
+                return $"SALDIRI  {lightAttack}     AĞIR SALDIRI  {heavyAttack}";
 
             if (x < 34f)
-                return $"SOUL SURGE'U VURUŞLARLA DOLDUR     HAZIR OLUNCA <color={KeyColor}><b>[Q]</b></color>";
+                return $"SOUL SURGE'U VURUŞLARLA DOLDUR     HAZIR OLUNCA {ultimate}";
 
             if (x >= 34f && x < 48f)
             {
                 string returnRule = GameplaySettings.MaterializeAtSoulPosition
                     ? "BEDEN RUHUN BULUNDUĞU YERDE OLUŞUR"
                     : "BEDEN BIRAKTIĞIN YERDE KALIR";
-                return $"RUHU AYIR / BEDENLEŞ  <color={KeyColor}><b>[E]</b></color>     {returnRule}";
+                return $"RUHU AYIR / BEDENLEŞ  {soulSwitch}     {returnRule}";
             }
 
             if (x >= 56f && x < 74f)
-                return $"ÇİFT ZIPLAMA     <color={KeyColor}><b>[SPACE] [SPACE]</b></color>";
+                return $"ÇİFT ZIPLAMA     {jump} {jump}";
 
             if (x >= 110f && x < 145f)
             {
                 return switchManager != null && switchManager.IsSoulActive
-                    ? $"RUH SALDIRISI  <color={KeyColor}><b>[J]</b></color>     BURADA BEDENLEŞ  <color={KeyColor}><b>[E]</b></color>"
-                    : $"HAYALETLERE ULAŞMAK İÇİN RUHA GEÇ  <color={KeyColor}><b>[E]</b></color>";
+                    ? $"RUH SALDIRISI  {lightAttack}     BURADA BEDENLEŞ  {soulSwitch}"
+                    : $"HAYALETLERE ULAŞMAK İÇİN RUHA GEÇ  {soulSwitch}";
             }
 
             if (x >= 156f && x < 178f)
-                return $"RUH KAPISI     RUHA GEÇ <color={KeyColor}><b>[E]</b></color>  •  KARŞI TARAFTA BEDENLEŞ <color={KeyColor}><b>[E]</b></color>";
+                return $"RUH KAPISI     RUHA GEÇ {soulSwitch}  •  KARŞI TARAFTA BEDENLEŞ {soulSwitch}";
 
             if (x >= 192f && x < 208f)
-                return $"KIRIK KÖPRÜ     ÇİFT ZIPLA <color={KeyColor}><b>[SPACE] [SPACE]</b></color>";
+                return $"KIRIK KÖPRÜ     ÇİFT ZIPLA {jump} {jump}";
 
             if (x >= 208f && x < 224f)
                 return $"SON AVLUNDA RUHANİ DÜŞMANLARI MUHAFIZLARA KARŞI KULLAN";
 
             return null;
+        }
+
+        private static string Key(string actionName, string compositePart = null, string fallback = "ATANMADI")
+        {
+            string displayName = InputBindingSettings.GetKeyboardDisplayName(
+                actionName, compositePart, fallback);
+            return $"<color={KeyColor}><b>[{displayName}]</b></color>";
         }
 
         private void OnValidate()

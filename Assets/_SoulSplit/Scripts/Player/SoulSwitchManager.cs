@@ -168,6 +168,9 @@ namespace SoulSplit.Player
             if (tether != null) tether.SetVisible(false);
             SetCombatForm(soulActive: false);
             ApplyUltimateModifiers(false);
+
+            if (GetComponent<SoulMaterializationPreview>() == null)
+                gameObject.AddComponent<SoulMaterializationPreview>();
         }
 
         private void OnEnable()
@@ -359,6 +362,12 @@ namespace SoulSplit.Player
 
             cameraFollow.SetTarget(soul.transform);
             if (tether != null) tether.SetVisible(true);
+
+            ParticleFX.Burst(body.transform.position, materializationFxColor, count: 14,
+                speed: 2.8f, size: 0.09f, lifetime: 0.3f,
+                spreadAngle: 180f, direction: Vector2.up, gravityScale: 0f);
+            CameraFollow.ShakeCamera(0.08f, 0.12f);
+            CameraFollow.PunchZoom(0.07f, 0.14f);
             OnFormChanged?.Invoke(true, false);
         }
 
@@ -378,13 +387,13 @@ namespace SoulSplit.Player
             cameraFollow.SetTarget(body.transform);
             if (tether != null) tether.SetVisible(false);
 
-            if (didMaterialize)
-            {
-                ParticleFX.Burst(soulPosition, materializationFxColor, count: 12,
-                    speed: 3.2f, size: 0.1f, lifetime: 0.28f,
-                    spreadAngle: 180f, direction: Vector2.up, gravityScale: 0f);
-                CameraFollow.PunchZoom(0.12f, 0.12f);
-            }
+            Vector2 returnPosition = body.transform.position;
+            ParticleFX.Burst(returnPosition, materializationFxColor,
+                count: didMaterialize ? 16 : 9,
+                speed: didMaterialize ? 3.4f : 2.2f, size: 0.1f, lifetime: 0.3f,
+                spreadAngle: 180f, direction: Vector2.up, gravityScale: 0f);
+            CameraFollow.ShakeCamera(didMaterialize ? 0.1f : 0.05f, 0.12f);
+            CameraFollow.PunchZoom(didMaterialize ? 0.12f : 0.06f, 0.12f);
 
             // Enerji bitip zorla dondurulduysa hemen tekrar cikilamasin.
             if (forced) _lockoutTimer = forcedReturnLockout;
@@ -448,6 +457,47 @@ namespace SoulSplit.Player
 
             safePosition = body.transform.position;
             return false;
+        }
+
+        /// <summary>
+        /// Ruh formu icin bedenlesme sonucunu onceden hesaplar. Ayar kapaliysa
+        /// bedenin birakildigi konumu, aciksa ruha en yakin guvenli konumu verir.
+        /// </summary>
+        public bool TryGetMaterializationPreview(out Vector2 position, out bool isSafe,
+            out bool remainsAtBody)
+        {
+            remainsAtBody = !GameplaySettings.MaterializeAtSoulPosition;
+            isSafe = false;
+            position = body != null ? (Vector2)body.transform.position : Vector2.zero;
+            if (!IsSoulActive || body == null || soul == null) return false;
+
+            if (remainsAtBody)
+            {
+                isSafe = true;
+                return true;
+            }
+
+            Vector2 desiredPosition = soul.transform.position;
+            isSafe = TryFindSafeMaterializationPosition(desiredPosition, out Vector2 safePosition);
+            position = isSafe ? safePosition : desiredPosition;
+            return true;
+        }
+
+        /// <summary>Onizlemenin beden kapsulune uygun merkez ve boyutunu verir.</summary>
+        public bool TryGetBodyPreviewShape(Vector2 bodyPosition, out Vector2 center, out Vector2 size)
+        {
+            center = bodyPosition;
+            size = Vector2.one;
+            if (body == null || _bodyCollider == null) return false;
+
+            Vector3 scale = body.transform.lossyScale;
+            size = new Vector2(
+                _bodyStandingColliderSize.x * Mathf.Abs(scale.x),
+                _bodyStandingColliderSize.y * Mathf.Abs(scale.y));
+            center = bodyPosition + new Vector2(
+                _bodyStandingColliderOffset.x * scale.x,
+                _bodyStandingColliderOffset.y * scale.y);
+            return true;
         }
 
         private bool IsMaterializationPositionClear(Vector2 bodyPosition)

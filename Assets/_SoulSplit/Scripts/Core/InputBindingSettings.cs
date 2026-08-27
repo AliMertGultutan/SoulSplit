@@ -67,6 +67,18 @@ namespace SoulSplit.Core
                 InputControlPath.HumanReadableStringOptions.OmitDevice).ToUpperInvariant();
         }
 
+        /// <summary>
+        /// Oyun ici ipuclari icin etkin klavye atamasini tek cagrida verir.
+        /// Oyuncu ayarlardan tusu degistirdiginde sonuc aninda yeni atamayi yansitir.
+        /// </summary>
+        public static string GetKeyboardDisplayName(string actionName, string compositePart = null,
+            string fallback = "ATANMADI")
+        {
+            return TryGetKeyboardBinding(actionName, compositePart, out InputAction action, out int bindingIndex)
+                ? GetDisplayName(action, bindingIndex)
+                : fallback;
+        }
+
         public static string FindKeyboardConflict(InputAction selectedAction, int selectedBindingIndex)
         {
             if (selectedAction == null || selectedBindingIndex < 0) return null;
