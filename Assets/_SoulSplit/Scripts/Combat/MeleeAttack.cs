@@ -51,6 +51,9 @@ namespace SoulSplit.Combat
                  "attackAnticipationDuration+attackStrikeDuration) eslesecek sekilde ayarlanmali; " +
                  "aksi halde hasar, kilic daha havadayken iner.")]
         [SerializeField] private float impactDelay = 0.125f;
+        [Tooltip("Cooldown bitmeden hemen once basilan saldiri tusunun hatirlanma suresi. " +
+                 "Erken girdilerin kaybolmasini engeller.")]
+        [SerializeField, Min(0f)] private float attackBufferTime = 0.18f;
 
         [Header("Carpisma Efekti — Hafif")]
         [Tooltip("Isabet aninda cikan parcaciklarin rengi. Fiziksel = sicak, ruhani = soguk secilmeli.")]
@@ -91,6 +94,8 @@ namespace SoulSplit.Combat
         private float _pendingImpactTimer = -1f;
         /// <summary>Bekleyen (veya en son tetiklenen) vurusun turu.</summary>
         private AttackTier _pendingTier = AttackTier.Light;
+        private float _bufferedAttackTimer = -1f;
+        private AttackTier _bufferedTier = AttackTier.Light;
 
         /// <summary>Son vurusta en az bir dogru hedefe isabet edildi mi? Efektler icin.</summary>
         public bool LastAttackConnected { get; private set; }
@@ -105,6 +110,8 @@ namespace SoulSplit.Combat
         public bool AcceptsInput { get; private set; } = true;
         /// <summary>Ultimate gibi gecici gucler icin harici hasar carpani.</summary>
         public float DamageMultiplier { get; set; } = 1f;
+        /// <summary>Cooldown sonrasinda calisacak bir saldiri girdisi bekliyor mu?</summary>
+        public bool HasBufferedAttack => _bufferedAttackTimer > 0f;
 
         private void Awake()
         {
@@ -145,18 +152,44 @@ namespace SoulSplit.Combat
                 }
             }
 
-            if (Time.time < _nextAttackTime) return;
+            if (_bufferedAttackTimer >= 0f)
+            {
+                _bufferedAttackTimer -= Time.deltaTime;
+                if (_bufferedAttackTimer <= 0f) _bufferedAttackTimer = -1f;
+            }
 
             // Agir saldiri hafife oncelikli: ayni karede ikisi de basilirsa
             // oyuncunun ACIKCA daha guclu tusu sectigi kabul edilir.
             if (input.HeavyAttackPressedThisFrame)
             {
-                BeginAttack(AttackTier.Heavy, heavyCooldown, heavyImpactDelay);
+                RequestAttack(AttackTier.Heavy);
             }
             else if (input.AttackPressedThisFrame)
             {
-                BeginAttack(AttackTier.Light, cooldown, impactDelay);
+                RequestAttack(AttackTier.Light);
             }
+
+            TryConsumeBufferedAttack();
+        }
+
+        /// <summary>
+        /// Saldiriyi hemen baslatir veya cooldown suruyorsa kisa sureligine siraya alir.
+        /// Agir saldiri, bekleyen hafif saldirinin yerini alabilir.
+        /// </summary>
+        public bool RequestAttack(AttackTier tier)
+        {
+            if (!AcceptsInput || !enabled || TimeScaleController.IsPaused) return false;
+
+            if (CanBeginAttack())
+            {
+                BeginAttackForTier(tier);
+                return true;
+            }
+
+            if (_bufferedAttackTimer <= 0f || tier == AttackTier.Heavy)
+                _bufferedTier = tier;
+            _bufferedAttackTimer = attackBufferTime;
+            return attackBufferTime > 0f;
         }
 
         /// <summary>
@@ -172,6 +205,7 @@ namespace SoulSplit.Combat
         public void CancelPendingAttack()
         {
             _pendingImpactTimer = -1f;
+            _bufferedAttackTimer = -1f;
             LastAttackConnected = false;
             LastAttackDeflected = false;
         }
@@ -186,18 +220,39 @@ namespace SoulSplit.Combat
             heavyCooldown = Mathf.Max(0f, heavyCooldown);
             impactDelay = Mathf.Clamp(impactDelay, 0f, cooldown);
             heavyImpactDelay = Mathf.Clamp(heavyImpactDelay, 0f, heavyCooldown);
+            attackBufferTime = Mathf.Max(0f, attackBufferTime);
             hitboxSize = new Vector2(Mathf.Max(0.01f, hitboxSize.x), Mathf.Max(0.01f, hitboxSize.y));
             heavyHitboxSize = new Vector2(Mathf.Max(0.01f, heavyHitboxSize.x), Mathf.Max(0.01f, heavyHitboxSize.y));
         }
 
         private void BeginAttack(AttackTier tier, float attackCooldown, float attackImpactDelay)
         {
+            _bufferedAttackTimer = -1f;
             _nextAttackTime = Time.time + attackCooldown;
             _pendingTier = tier;
             _pendingImpactTimer = attackImpactDelay;
             // Animasyon (hazirlik pozu) hemen, tusa basildigi anda baslamali —
             // bu yuzden OnAttackTriggered burada, gecikmeden once tetiklenir.
             OnAttackTriggered?.Invoke(tier);
+        }
+
+        private bool CanBeginAttack()
+        {
+            return Time.time >= _nextAttackTime && _pendingImpactTimer < 0f;
+        }
+
+        private void TryConsumeBufferedAttack()
+        {
+            if (_bufferedAttackTimer <= 0f || !CanBeginAttack()) return;
+            BeginAttackForTier(_bufferedTier);
+        }
+
+        private void BeginAttackForTier(AttackTier tier)
+        {
+            if (tier == AttackTier.Heavy)
+                BeginAttack(tier, heavyCooldown, heavyImpactDelay);
+            else
+                BeginAttack(tier, cooldown, impactDelay);
         }
 
         /// <summary>Bakis yonunu aktif kontrolcuden okur.</summary>

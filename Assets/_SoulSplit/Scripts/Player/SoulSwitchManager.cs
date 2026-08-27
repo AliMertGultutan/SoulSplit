@@ -69,6 +69,14 @@ namespace SoulSplit.Player
         [SerializeField] private float ultimateDamageMultiplier = 2f;
         [SerializeField] private Color ultimateFxColor = new Color(0.78f, 0.35f, 1f, 1f);
 
+        [Header("Savas Akisi")]
+        [Tooltip("Basarili vuruslar arasinda zincirin korunacagi sure.")]
+        [SerializeField] private float comboWindow = 2.25f;
+        [Tooltip("HUD'da ve odul hesabinda kullanilan en yuksek Akis kademesi.")]
+        [SerializeField] private int maxComboCount = 8;
+        [Tooltip("Her ek Akis kademesinin Soul Surge kazancina ekledigi oran.")]
+        [SerializeField, Range(0f, 0.25f)] private float comboChargeBonusPerStep = 0.08f;
+
         [Header("Ruhun Konumunda Bedenlesme")]
         [Tooltip("Bedenlesme noktasini engelleyen katmanlar. Varsayilan: Ground.")]
         [SerializeField] private LayerMask materializationBlockingLayers = 1 << 8;
@@ -83,6 +91,8 @@ namespace SoulSplit.Player
         private float _ultimateCharge;
         private float _ultimateTimer;
         private float _ultimateFxTimer;
+        private int _comboCount;
+        private float _comboTimer;
         private Rigidbody2D _bodyRigidbody;
         private CapsuleCollider2D _bodyCollider;
         private Vector2 _bodyStandingColliderSize;
@@ -109,6 +119,11 @@ namespace SoulSplit.Player
             ? 0f
             : Mathf.Clamp01(_ultimateTimer / ultimateDuration);
         public float UltimateSecondsRemaining => IsUltimateActive ? Mathf.Max(0f, _ultimateTimer) : 0f;
+        /// <summary>Sure dolmadan arka arkaya yapilan basarili vurus sayisi.</summary>
+        public int ComboCount => _comboCount;
+        public float ComboTimeNormalized => _comboCount <= 0 || comboWindow <= 0f
+            ? 0f
+            : Mathf.Clamp01(_comboTimer / comboWindow);
         /// <summary>Prefab gibi sahne disi nesnelerin bedeni guvenle bulabilmesi icin salt okunur hedef.</summary>
         public Transform BodyTransform => body != null ? body.transform : null;
         /// <summary>Prefab gibi sahne disi nesnelerin ruhu guvenle bulabilmesi icin salt okunur hedef.</summary>
@@ -131,6 +146,7 @@ namespace SoulSplit.Player
         {
             _soulEnergy = maxSoulDuration;
             _lockoutTimer = 0f;
+            ResetCombo();
         }
 
         private void Awake()
@@ -189,6 +205,7 @@ namespace SoulSplit.Player
             _lockoutTimer -= Time.deltaTime;
 
             UpdateUltimate();
+            UpdateCombo();
 
             if (IsSoulActive) UpdateSoulForm();
             else UpdateBodyForm();
@@ -303,9 +320,39 @@ namespace SoulSplit.Player
         {
             if (IsUltimateActive) return;
 
+            _comboCount = _comboTimer > 0f
+                ? Mathf.Min(maxComboCount, _comboCount + 1)
+                : 1;
+            _comboTimer = comboWindow;
+
             float gain = tier == AttackTier.Heavy ? heavyHitCharge : lightHitCharge;
             if (result == HitResult.Killed) gain += killBonusCharge;
+            gain *= 1f + Mathf.Max(0, _comboCount - 1) * comboChargeBonusPerStep;
             _ultimateCharge = Mathf.Min(ultimateChargeRequired, _ultimateCharge + gain);
+
+            if (_comboCount == maxComboCount)
+            {
+                Transform activeTransform = IsSoulActive ? SoulTransform : BodyTransform;
+                if (activeTransform != null)
+                {
+                    ParticleFX.Burst(activeTransform.position, ultimateFxColor, count: 10,
+                        speed: 2.6f, size: 0.08f, lifetime: 0.25f,
+                        spreadAngle: 180f, direction: Vector2.up, gravityScale: 0f);
+                }
+            }
+        }
+
+        private void UpdateCombo()
+        {
+            if (_comboCount <= 0) return;
+            _comboTimer -= Time.deltaTime;
+            if (_comboTimer <= 0f) ResetCombo();
+        }
+
+        private void ResetCombo()
+        {
+            _comboCount = 0;
+            _comboTimer = 0f;
         }
 
         /// <summary>Test, odul ve seviye sistemlerinin ultimate puani vermesi icin.</summary>
@@ -548,6 +595,8 @@ namespace SoulSplit.Player
             ultimateDuration = Mathf.Max(0.1f, ultimateDuration);
             ultimateMovementMultiplier = Mathf.Max(1f, ultimateMovementMultiplier);
             ultimateDamageMultiplier = Mathf.Max(1f, ultimateDamageMultiplier);
+            comboWindow = Mathf.Max(0.1f, comboWindow);
+            maxComboCount = Mathf.Max(2, maxComboCount);
             maxMaterializationSearchRadius = Mathf.Max(0f, maxMaterializationSearchRadius);
             materializationSearchStep = Mathf.Clamp(materializationSearchStep, 0.1f, 1f);
         }

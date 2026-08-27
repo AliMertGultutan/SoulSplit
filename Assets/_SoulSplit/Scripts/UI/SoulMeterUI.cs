@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using SoulSplit.Player;
+using SoulSplit.Core;
 
 namespace SoulSplit.UI
 {
@@ -92,11 +93,12 @@ namespace SoulSplit.UI
                 : Mathf.Lerp(_displayedUltimate, target,
                     1f - Mathf.Exp(-Time.unscaledDeltaTime / Mathf.Max(0.001f, smoothing)));
             _ultimateFill.localScale = new Vector3(Mathf.Clamp01(_displayedUltimate), 1f, 1f);
+            string flow = switchManager.ComboCount >= 2 ? $"  •  AKIŞ x{switchManager.ComboCount}" : string.Empty;
 
             if (switchManager.IsUltimateActive)
             {
                 _ultimateFillImage.color = UltimateActiveColor;
-                _ultimateStateText.text = $"SOUL SURGE  {switchManager.UltimateSecondsRemaining:0.0}s";
+                _ultimateStateText.text = $"SOUL SURGE  {switchManager.UltimateSecondsRemaining:0.0}s{flow}";
             }
             else if (switchManager.UltimateReady)
             {
@@ -104,12 +106,14 @@ namespace SoulSplit.UI
                 _ultimateFillImage.color = UltimateReadyColor * pulse;
                 _ultimateFillImage.color = new Color(
                     _ultimateFillImage.color.r, _ultimateFillImage.color.g, _ultimateFillImage.color.b, 1f);
-                _ultimateStateText.text = "SOUL SURGE HAZIR  [Q]";
+                string ultimateKey = InputBindingSettings.GetKeyboardDisplayName("Ultimate", fallback: "Q");
+                _ultimateStateText.text = $"SOUL SURGE HAZIR  [{ultimateKey}]{flow}";
             }
             else
             {
                 _ultimateFillImage.color = UltimateChargingColor;
-                _ultimateStateText.text = $"SOUL SURGE  %{Mathf.RoundToInt(switchManager.UltimateChargeNormalized * 100f)}";
+                _ultimateStateText.text =
+                    $"SOUL SURGE  %{Mathf.RoundToInt(switchManager.UltimateChargeNormalized * 100f)}{flow}";
             }
         }
 
@@ -163,6 +167,9 @@ namespace SoulSplit.UI
             _ultimateStateText = textObject.GetComponent<Text>();
             _ultimateStateText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             _ultimateStateText.fontSize = 18;
+            _ultimateStateText.resizeTextForBestFit = true;
+            _ultimateStateText.resizeTextMinSize = 13;
+            _ultimateStateText.resizeTextMaxSize = 18;
             _ultimateStateText.fontStyle = FontStyle.Bold;
             _ultimateStateText.alignment = TextAnchor.MiddleCenter;
             _ultimateStateText.color = Color.white;

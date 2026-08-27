@@ -32,6 +32,8 @@ Oyun içi yönlendirmeler de varsayılan tuşlar yerine oyuncunun etkin atamalar
 - Ruhani düşmanlar bedene de saldırır; ruh dışarıdaysa beden veya ruhtan kendilerine daha yakın olanı hedefler.
 - Ruh dışarıdayken enerji mesafeye bağlı olarak daha hızlı tükenir.
 - Başarılı vuruşlar ve öldürmeler Soul Surge göstergesini doldurur. Ultimate aktifken ruh enerjisi tükenmez, hareket hızlanır ve saldırı hasarı artar.
+- Cooldown bitmeden hemen önce basılan hafif veya ağır saldırı kısa süreliğine tamponlanır; erken basılan komut kaybolmadan sıradaki saldırıya dönüşür.
+- Art arda başarılı vuruşlar `AKIŞ` zincirini yükseltir ve Soul Surge kazanımını kademeli olarak artırır; zincir HUD üzerinde açık metinle gösterilir.
 - Beden ve ruh ortak can kullanır; beden savunmasız bırakılırsa oyuncu ölebilir.
 - Checkpoint tetikleri yeniden doğuş konumunu günceller.
 - Ulaşılan en ileri checkpoint otomatik kaydedilir; ana menüden oyuna devam edilebilir veya onay vererek yeni oyun başlatılabilir.

@@ -150,6 +150,53 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
+        public IEnumerator AttackPressedDuringCooldown_IsBufferedAndExecuted()
+        {
+            MeleeAttack attack = GameObject.Find("Player")?.GetComponent<MeleeAttack>();
+            Assert.That(attack, Is.Not.Null);
+
+            int triggerCount = 0;
+            AttackTier lastTier = AttackTier.Light;
+            attack.OnAttackTriggered += tier =>
+            {
+                triggerCount++;
+                lastTier = tier;
+            };
+
+            Assert.That(attack.RequestAttack(AttackTier.Light), Is.True);
+            yield return new WaitForSeconds(0.22f);
+            Assert.That(attack.RequestAttack(AttackTier.Heavy), Is.True);
+            Assert.That(attack.HasBufferedAttack, Is.True,
+                "Cooldown sirasinda gelen ikinci saldiri kaybolmamalidir.");
+
+            yield return new WaitForSeconds(0.2f);
+
+            Assert.That(triggerCount, Is.EqualTo(2));
+            Assert.That(lastTier, Is.EqualTo(AttackTier.Heavy));
+            Assert.That(attack.HasBufferedAttack, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator ConsecutiveHits_BuildFlowAndIncreaseSoulSurgeReward()
+        {
+            SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
+            Assert.That(manager, Is.Not.Null);
+
+            MethodInfo registerHit = typeof(SoulSwitchManager).GetMethod(
+                "HandleHitConfirmed", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(registerHit, Is.Not.Null);
+
+            registerHit.Invoke(manager, new object[] { AttackTier.Light, HitResult.Damaged });
+            registerHit.Invoke(manager, new object[] { AttackTier.Light, HitResult.Damaged });
+            yield return null;
+
+            Assert.That(manager.ComboCount, Is.EqualTo(2));
+            Assert.That(manager.ComboTimeNormalized, Is.GreaterThan(0.9f));
+            Assert.That(manager.UltimateChargeNormalized, Is.GreaterThan(0.28f),
+                "Ikinci zincir vurusunun Soul Surge odulu bonuslu olmalidir.");
+        }
+
+        [UnityTest]
         public IEnumerator PauseMenu_AutoBootstrapsAndRestoresTimeScale()
         {
             yield return null;
