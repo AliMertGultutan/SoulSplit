@@ -22,6 +22,9 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 | Soul Surge ultimate | Q | Sağ omuz tuşu |
 | Duraklat / devam et | Esc | Start button |
 
+Klavye kontrolleri ana menü veya duraklatma menüsündeki `Ayarlar > Klavye Tuşlarını Ayarla`
+ekranından değiştirilebilir. Atamalar otomatik kaydedilir; çakışan tuşlar kabul edilmez.
+
 ## Oyun kuralları
 
 - Beden fiziksel, ruh ise ruhani hasar verir.

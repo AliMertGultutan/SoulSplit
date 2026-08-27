@@ -23,6 +23,8 @@ namespace SoulSplit.UI
         private Font _font;
         private Slider _volumeSlider;
         private Slider _cameraEffectsSlider;
+        private Button _controlsButton;
+        private ControlsRebindPanelUI _controlsPanel;
         private Toggle _hintsToggle;
         private Toggle _hitStopToggle;
         private Toggle _materializationToggle;
@@ -47,6 +49,7 @@ namespace SoulSplit.UI
         private void Awake()
         {
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _controlsPanel = ControlsRebindPanelUI.GetOrCreate();
             BuildInterface();
             _root.SetActive(false);
         }
@@ -67,6 +70,12 @@ namespace SoulSplit.UI
         public void Close()
         {
             if (!IsOpen) return;
+            if (_controlsPanel != null && _controlsPanel.IsOpen)
+            {
+                if (_controlsPanel.KeyboardCancelHandledThisFrame) return;
+                _controlsPanel.Close();
+                return;
+            }
             _root.SetActive(false);
 
             if (EventSystem.current != null && _returnFocus != null && _returnFocus.activeInHierarchy)
@@ -130,12 +139,20 @@ namespace SoulSplit.UI
                 new Vector2(0f, -155f), out _fullscreenLabel);
             _fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
 
-            CreateButton(panel.transform, "ResetSettingsButton", "VARSAYILANLARA DÖN",
-                new Vector2(0f, -240f), WarmColor, ResetDefaults);
+            _controlsButton = CreateButton(panel.transform, "ControlsButton", "KLAVYE TUŞLARINI AYARLA",
+                new Vector2(0f, -220f), AccentColor, OpenControls);
+            CreateButton(panel.transform, "ResetSettingsButton", "GENEL AYARLARI SIFIRLA",
+                new Vector2(0f, -284f), WarmColor, ResetDefaults);
             CreateButton(panel.transform, "BackButton", "GERİ",
-                new Vector2(0f, -312f), AccentColor, Close);
+                new Vector2(0f, -348f), AccentColor, Close);
             CreateText(panel.transform, "Footer", "Değişiklikler otomatik kaydedilir", 14, FontStyle.Normal,
-                new Vector2(0f, -375f), new Vector2(470f, 28f), new Color(0.55f, 0.62f, 0.68f));
+                new Vector2(0f, -405f), new Vector2(470f, 28f), new Color(0.55f, 0.62f, 0.68f));
+        }
+
+        public void OpenControls()
+        {
+            if (_controlsPanel != null)
+                _controlsPanel.Open(_controlsButton != null ? _controlsButton.gameObject : null);
         }
 
         private void RefreshControls()

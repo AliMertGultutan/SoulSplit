@@ -76,6 +76,18 @@ namespace SoulSplit.Tests
             SettingsPanelUI settingsPanel = Object.FindAnyObjectByType<SettingsPanelUI>();
             Assert.That(settingsPanel, Is.Not.Null);
             Assert.That(settingsPanel.IsOpen, Is.True);
+
+            Button controlsButton = GameObject.Find("ControlsButton")?.GetComponent<Button>();
+            Assert.That(controlsButton, Is.Not.Null);
+            ExecuteEvents.Execute(controlsButton.gameObject, new PointerEventData(EventSystem.current),
+                ExecuteEvents.pointerClickHandler);
+            ControlsRebindPanelUI controlsPanel = Object.FindAnyObjectByType<ControlsRebindPanelUI>();
+            Assert.That(controlsPanel, Is.Not.Null);
+            Assert.That(controlsPanel.IsOpen, Is.True);
+            Assert.That(GameObject.Find("Rebind_Move_up"), Is.Not.Null);
+            Assert.That(GameObject.Find("Rebind_Ultimate_Primary"), Is.Not.Null);
+
+            controlsPanel.Close();
             settingsPanel.Close();
         }
 

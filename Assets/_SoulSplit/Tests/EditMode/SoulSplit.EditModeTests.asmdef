@@ -2,7 +2,8 @@
   "name": "SoulSplit.EditModeTests",
   "rootNamespace": "SoulSplit.Tests",
   "references": [
-    "SoulSplit.Runtime"
+    "SoulSplit.Runtime",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [
     "Editor"
