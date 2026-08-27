@@ -71,6 +71,85 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
+        public IEnumerator SoulSurge_ActivatesOnlyWhenChargedAndAppliesBothFormBonuses()
+        {
+            SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
+            PlayerController body = Object.FindAnyObjectByType<PlayerController>();
+            SoulController soul = Object.FindAnyObjectByType<SoulController>(FindObjectsInactive.Include);
+            Assert.That(manager, Is.Not.Null);
+            Assert.That(body, Is.Not.Null);
+            Assert.That(soul, Is.Not.Null);
+            Assert.That(manager.TryActivateUltimate(), Is.False, "Bos ultimate etkinlesmemelidir.");
+
+            manager.AddUltimateCharge(1000f);
+            Assert.That(manager.UltimateReady, Is.True);
+            Assert.That(manager.TryActivateUltimate(), Is.True);
+            yield return null;
+
+            Assert.That(manager.IsUltimateActive, Is.True);
+            Assert.That(manager.UltimateChargeNormalized, Is.Zero.Within(0.001f));
+            Assert.That(body.MovementSpeedMultiplier, Is.GreaterThan(1f));
+            Assert.That(soul.MovementSpeedMultiplier, Is.GreaterThan(1f));
+            Assert.That(body.GetComponent<MeleeAttack>().DamageMultiplier, Is.GreaterThan(1f));
+            Assert.That(soul.GetComponent<MeleeAttack>().DamageMultiplier, Is.GreaterThan(1f));
+
+            MethodInfo endUltimate = typeof(SoulSwitchManager).GetMethod(
+                "EndUltimate", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(endUltimate, Is.Not.Null);
+            endUltimate.Invoke(manager, null);
+
+            Assert.That(manager.IsUltimateActive, Is.False);
+            Assert.That(body.MovementSpeedMultiplier, Is.EqualTo(1f));
+            Assert.That(soul.MovementSpeedMultiplier, Is.EqualTo(1f));
+            Assert.That(body.GetComponent<MeleeAttack>().DamageMultiplier, Is.EqualTo(1f));
+            Assert.That(soul.GetComponent<MeleeAttack>().DamageMultiplier, Is.EqualTo(1f));
+        }
+
+        [UnityTest]
+        public IEnumerator GameplayHud_CreatesReadableSoulSurgeMeter()
+        {
+            yield return null;
+
+            GameObject ultimateMeter = GameObject.Find("UltimateMeter_BG");
+            Assert.That(ultimateMeter, Is.Not.Null);
+            Assert.That(ultimateMeter.GetComponent<Image>(), Is.Not.Null);
+
+            Text stateText = ultimateMeter.GetComponentInChildren<Text>();
+            Assert.That(stateText, Is.Not.Null);
+            Assert.That(stateText.text, Does.Contain("SOUL SURGE"));
+        }
+
+        [UnityTest]
+        public IEnumerator SuccessfulBodyAttack_FillsSoulSurgeCharge()
+        {
+            SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
+            GameObject body = GameObject.Find("Player");
+            GameObject targetObject = GameObject.Find("PhysicalEnemy_Guardian");
+            Assert.That(manager, Is.Not.Null);
+            Assert.That(body, Is.Not.Null);
+            Assert.That(targetObject, Is.Not.Null);
+
+            MeleeAttack attack = body.GetComponent<MeleeAttack>();
+            Health targetHealth = targetObject.GetComponent<Health>();
+            Assert.That(attack, Is.Not.Null);
+            Assert.That(targetHealth, Is.Not.Null);
+
+            targetHealth.ResetHealth();
+            targetObject.transform.position = body.transform.position + Vector3.right * 0.7f;
+            Physics2D.SyncTransforms();
+
+            MethodInfo performAttack = typeof(MeleeAttack).GetMethod(
+                "PerformAttack", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(performAttack, Is.Not.Null);
+            performAttack.Invoke(attack, new object[] { AttackTier.Light });
+            yield return null;
+
+            Assert.That(attack.LastAttackConnected, Is.True);
+            Assert.That(manager.UltimateChargeNormalized, Is.GreaterThan(0f),
+                "Basarili fiziksel vurus Soul Surge gostergesini doldurmalidir.");
+        }
+
+        [UnityTest]
         public IEnumerator PauseMenu_AutoBootstrapsAndRestoresTimeScale()
         {
             yield return null;

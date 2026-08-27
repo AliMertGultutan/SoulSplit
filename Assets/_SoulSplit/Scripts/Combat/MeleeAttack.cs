@@ -98,9 +98,13 @@ namespace SoulSplit.Combat
         public bool LastAttackDeflected { get; private set; }
         /// <summary>Vurus tetiklenince (isabetten bagimsiz) calisir; hangi tur oldugunu tasir. Animasyon bunu dinler.</summary>
         public event System.Action<AttackTier> OnAttackTriggered;
+        /// <summary>Dogru hedefe isabet eden her vurus icin sonucuyla birlikte tetiklenir.</summary>
+        public event System.Action<AttackTier, HitResult> OnHitConfirmed;
 
         /// <summary>Aktif formun bu saldiri bileseninden girdi kabul edip etmedigi.</summary>
         public bool AcceptsInput { get; private set; } = true;
+        /// <summary>Ultimate gibi gecici gucler icin harici hasar carpani.</summary>
+        public float DamageMultiplier { get; set; } = 1f;
 
         private void Awake()
         {
@@ -214,7 +218,8 @@ namespace SoulSplit.Combat
             LastAttackConnected = false;
             LastAttackDeflected = false;
 
-            int appliedDamage = tier == AttackTier.Heavy ? heavyDamage : damage;
+            int baseDamage = tier == AttackTier.Heavy ? heavyDamage : damage;
+            int appliedDamage = Mathf.Max(1, Mathf.RoundToInt(baseDamage * Mathf.Max(0.01f, DamageMultiplier)));
             Vector2 appliedHitboxSize = tier == AttackTier.Heavy ? heavyHitboxSize : hitboxSize;
             Color appliedImpactColor = tier == AttackTier.Heavy ? heavyImpactColor : impactColor;
 
@@ -241,6 +246,7 @@ namespace SoulSplit.Combat
                 if (result == HitResult.Damaged || result == HitResult.Killed)
                 {
                     LastAttackConnected = true;
+                    OnHitConfirmed?.Invoke(tier, result);
                     Vector2 hitPoint = _results[i].bounds.center;
                     ParticleFX.Impact(hitPoint, appliedImpactColor, new Vector2(_facing, 0.2f),
                         tier == AttackTier.Heavy ? 1.6f : 1f);

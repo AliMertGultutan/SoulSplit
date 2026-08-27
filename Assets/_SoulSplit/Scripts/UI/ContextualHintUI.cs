@@ -79,6 +79,9 @@ namespace SoulSplit.UI
             if (x < 22f)
                 return $"SALDIRI  <color={KeyColor}><b>[J]</b></color>     AĞIR SALDIRI  <color={KeyColor}><b>[K]</b></color>";
 
+            if (x < 34f)
+                return $"SOUL SURGE'U VURUŞLARLA DOLDUR     HAZIR OLUNCA <color={KeyColor}><b>[Q]</b></color>";
+
             if (x >= 34f && x < 48f)
             {
                 string returnRule = GameplaySettings.MaterializeAtSoulPosition

@@ -21,12 +21,14 @@ namespace SoulSplit.Player
         [SerializeField] private string attackActionName = "Attack";
         [SerializeField] private string heavyAttackActionName = "HeavyAttack";
         [SerializeField] private string soulSwitchActionName = "SoulSwitch";
+        [SerializeField] private string ultimateActionName = "Ultimate";
 
         private InputAction _moveAction;
         private InputAction _jumpAction;
         private InputAction _attackAction;
         private InputAction _heavyAttackAction;
         private InputAction _soulSwitchAction;
+        private InputAction _ultimateAction;
 
         /// <summary>Ham yon girdisi (-1..1).</summary>
         public Vector2 MoveInput { get; private set; }
@@ -42,6 +44,8 @@ namespace SoulSplit.Player
         /// <summary>Agir saldiri tusuna bu karede basildi mi?</summary>
         public bool HeavyAttackPressedThisFrame { get; private set; }
         public bool SoulSwitchPressedThisFrame { get; private set; }
+        /// <summary>Ultimate gucunu etkinlestirme tusuna bu karede basildi mi?</summary>
+        public bool UltimatePressedThisFrame { get; private set; }
 
         [Header("Olu Bolge")]
         [Range(0f, 0.9f)]
@@ -62,6 +66,8 @@ namespace SoulSplit.Player
             _attackAction = map.FindAction(attackActionName, throwIfNotFound: true);
             _heavyAttackAction = map.FindAction(heavyAttackActionName, throwIfNotFound: true);
             _soulSwitchAction = map.FindAction(soulSwitchActionName, throwIfNotFound: true);
+            string resolvedUltimateName = string.IsNullOrWhiteSpace(ultimateActionName) ? "Ultimate" : ultimateActionName;
+            _ultimateAction = map.FindAction(resolvedUltimateName, throwIfNotFound: true);
         }
 
         private void OnEnable()
@@ -88,6 +94,7 @@ namespace SoulSplit.Player
             AttackPressedThisFrame = _attackAction.WasPressedThisFrame();
             HeavyAttackPressedThisFrame = _heavyAttackAction.WasPressedThisFrame();
             SoulSwitchPressedThisFrame = _soulSwitchAction.WasPressedThisFrame();
+            UltimatePressedThisFrame = _ultimateAction.WasPressedThisFrame();
         }
     }
 }

@@ -72,6 +72,8 @@ namespace SoulSplit.Player
         /// <summary>Bakis yonu; gorsel cevirme icin.</summary>
         public int FacingDirection => _facingDirection;
         public Vector2 Velocity => _rb != null ? _rb.linearVelocity : Vector2.zero;
+        /// <summary>Gecici gucler icin temel denge degerini bozmayan harici hiz carpani.</summary>
+        public float MovementSpeedMultiplier { get; set; } = 1f;
 
         private void Awake()
         {
@@ -173,7 +175,7 @@ namespace SoulSplit.Player
             Vector2 moveInput = input.MoveInput;
             if (moveInput.sqrMagnitude > 1f) moveInput.Normalize();
 
-            Vector2 targetVelocity = moveInput * maxSpeed;
+            Vector2 targetVelocity = moveInput * maxSpeed * Mathf.Max(0.01f, MovementSpeedMultiplier);
             bool isAccelerating = moveInput.sqrMagnitude > 0.01f;
             float rate = isAccelerating ? acceleration : deceleration;
 

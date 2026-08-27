@@ -52,6 +52,23 @@ namespace SoulSplit.Player
         [Tooltip("Zorla geri donusten sonra tekrar ayrilamama suresi.")]
         [SerializeField] private float forcedReturnLockout = 1f;
 
+        [Header("Soul Surge Ultimate")]
+        [Tooltip("Ultimate'i doldurmak icin gereken toplam vurus puani.")]
+        [SerializeField] private float ultimateChargeRequired = 100f;
+        [Tooltip("Hafif saldiri isabetinde kazanilan ultimate puani.")]
+        [SerializeField] private float lightHitCharge = 14f;
+        [Tooltip("Agir saldiri isabetinde kazanilan ultimate puani.")]
+        [SerializeField] private float heavyHitCharge = 24f;
+        [Tooltip("Hedef olduruldugunde verilen ek ultimate puani.")]
+        [SerializeField] private float killBonusCharge = 12f;
+        [Tooltip("Ultimate formunun etkin kalma suresi.")]
+        [SerializeField] private float ultimateDuration = 7f;
+        [Tooltip("Ultimate sirasinda beden ve ruh hareket hizi carpani.")]
+        [SerializeField] private float ultimateMovementMultiplier = 1.25f;
+        [Tooltip("Ultimate sirasinda saldiri hasari carpani.")]
+        [SerializeField] private float ultimateDamageMultiplier = 2f;
+        [SerializeField] private Color ultimateFxColor = new Color(0.78f, 0.35f, 1f, 1f);
+
         [Header("Ruhun Konumunda Bedenlesme")]
         [Tooltip("Bedenlesme noktasini engelleyen katmanlar. Varsayilan: Ground.")]
         [SerializeField] private LayerMask materializationBlockingLayers = 1 << 8;
@@ -63,6 +80,9 @@ namespace SoulSplit.Player
 
         private float _soulEnergy;
         private float _lockoutTimer;
+        private float _ultimateCharge;
+        private float _ultimateTimer;
+        private float _ultimateFxTimer;
         private Rigidbody2D _bodyRigidbody;
         private CapsuleCollider2D _bodyCollider;
         private Vector2 _bodyStandingColliderSize;
@@ -76,12 +96,27 @@ namespace SoulSplit.Player
         public float CurrentDrainMultiplier { get; private set; } = 1f;
         /// <summary>Ayrilmaya yetecek enerji var mi?</summary>
         public bool CanSeparate => _soulEnergy >= minEnergyToSeparate && _lockoutTimer <= 0f;
+        /// <summary>Ultimate dolumu 0-1 arasi.</summary>
+        public float UltimateChargeNormalized => ultimateChargeRequired <= 0f
+            ? 0f
+            : Mathf.Clamp01(_ultimateCharge / ultimateChargeRequired);
+        /// <summary>Soul Surge kullanima hazir mi?</summary>
+        public bool UltimateReady => !IsUltimateActive && _ultimateCharge >= ultimateChargeRequired;
+        /// <summary>Soul Surge su an etkin mi?</summary>
+        public bool IsUltimateActive { get; private set; }
+        /// <summary>Etkin ultimate'in kalan suresi 0-1 arasi.</summary>
+        public float UltimateTimeNormalized => !IsUltimateActive || ultimateDuration <= 0f
+            ? 0f
+            : Mathf.Clamp01(_ultimateTimer / ultimateDuration);
+        public float UltimateSecondsRemaining => IsUltimateActive ? Mathf.Max(0f, _ultimateTimer) : 0f;
         /// <summary>Prefab gibi sahne disi nesnelerin bedeni guvenle bulabilmesi icin salt okunur hedef.</summary>
         public Transform BodyTransform => body != null ? body.transform : null;
         /// <summary>Prefab gibi sahne disi nesnelerin ruhu guvenle bulabilmesi icin salt okunur hedef.</summary>
         public Transform SoulTransform => soul != null ? soul.transform : null;
         /// <summary>Form degistiginde yeni ruh durumu ve zorunlu donus bilgisiyle tetiklenir.</summary>
         public event System.Action<bool, bool> OnFormChanged;
+        /// <summary>Ultimate basladiginda veya bittiginde tetiklenir.</summary>
+        public event System.Action<bool> OnUltimateStateChanged;
 
         /// <summary>Disaridan zorla bedene dondurur (olum, sahne gecisi vb.).</summary>
         public void ForceReturnToBody()
@@ -132,28 +167,149 @@ namespace SoulSplit.Player
             if (cameraFollow != null && body != null) cameraFollow.SetTarget(body.transform);
             if (tether != null) tether.SetVisible(false);
             SetCombatForm(soulActive: false);
+            ApplyUltimateModifiers(false);
+        }
+
+        private void OnEnable()
+        {
+            SubscribeToCombat();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeFromCombat();
+            if (IsUltimateActive) EndUltimate();
         }
 
         private void Update()
         {
             _lockoutTimer -= Time.deltaTime;
 
+            UpdateUltimate();
+
             if (IsSoulActive) UpdateSoulForm();
             else UpdateBodyForm();
 
+            HandleUltimateInput();
             HandleSwitchInput();
         }
 
         private void UpdateSoulForm()
         {
             CurrentDrainMultiplier = CalculateDrainMultiplier();
-            _soulEnergy -= Time.deltaTime * CurrentDrainMultiplier;
+            if (!IsUltimateActive)
+                _soulEnergy -= Time.deltaTime * CurrentDrainMultiplier;
 
             if (_soulEnergy <= 0f)
             {
                 _soulEnergy = 0f;
                 ReturnToBody(forced: true, materializeAtSoul: true);
             }
+        }
+
+        private void UpdateUltimate()
+        {
+            if (!IsUltimateActive) return;
+
+            _ultimateTimer -= Time.deltaTime;
+            if (_ultimateTimer <= 0f)
+            {
+                EndUltimate();
+                return;
+            }
+
+            _ultimateFxTimer -= Time.deltaTime;
+            if (_ultimateFxTimer <= 0f)
+            {
+                _ultimateFxTimer = 0.32f;
+                Transform activeTransform = IsSoulActive ? SoulTransform : BodyTransform;
+                if (activeTransform != null)
+                {
+                    ParticleFX.Burst(activeTransform.position, ultimateFxColor, count: 6,
+                        speed: 1.8f, size: 0.09f, lifetime: 0.28f,
+                        spreadAngle: 180f, direction: Vector2.up, gravityScale: 0f);
+                }
+            }
+        }
+
+        private void HandleUltimateInput()
+        {
+            if (input.UltimatePressedThisFrame) TryActivateUltimate();
+        }
+
+        /// <summary>Doluysa Soul Surge'u etkinlestirir; UI ve testler de bu girisi kullanabilir.</summary>
+        public bool TryActivateUltimate()
+        {
+            if (!UltimateReady) return false;
+
+            _ultimateCharge = 0f;
+            _ultimateTimer = ultimateDuration;
+            _ultimateFxTimer = 0f;
+            IsUltimateActive = true;
+            ApplyUltimateModifiers(true);
+
+            Transform activeTransform = IsSoulActive ? SoulTransform : BodyTransform;
+            if (activeTransform != null)
+            {
+                ParticleFX.Burst(activeTransform.position, ultimateFxColor, count: 30,
+                    speed: 5.2f, size: 0.14f, lifetime: 0.55f,
+                    spreadAngle: 180f, direction: Vector2.up, gravityScale: 0f);
+            }
+            CameraFollow.ShakeCamera(0.22f, 0.24f);
+            CameraFollow.PunchZoom(0.28f, 0.28f);
+            HitStop.Trigger(0.07f);
+            OnUltimateStateChanged?.Invoke(true);
+            return true;
+        }
+
+        private void EndUltimate()
+        {
+            if (!IsUltimateActive) return;
+
+            IsUltimateActive = false;
+            _ultimateTimer = 0f;
+            _ultimateFxTimer = 0f;
+            ApplyUltimateModifiers(false);
+            OnUltimateStateChanged?.Invoke(false);
+        }
+
+        private void ApplyUltimateModifiers(bool active)
+        {
+            float movement = active ? ultimateMovementMultiplier : 1f;
+            float damageMultiplier = active ? ultimateDamageMultiplier : 1f;
+
+            if (body != null) body.MovementSpeedMultiplier = movement;
+            if (soul != null) soul.MovementSpeedMultiplier = movement;
+            if (bodyAttack != null) bodyAttack.DamageMultiplier = damageMultiplier;
+            if (soulAttack != null) soulAttack.DamageMultiplier = damageMultiplier;
+        }
+
+        private void SubscribeToCombat()
+        {
+            if (bodyAttack != null) bodyAttack.OnHitConfirmed += HandleHitConfirmed;
+            if (soulAttack != null) soulAttack.OnHitConfirmed += HandleHitConfirmed;
+        }
+
+        private void UnsubscribeFromCombat()
+        {
+            if (bodyAttack != null) bodyAttack.OnHitConfirmed -= HandleHitConfirmed;
+            if (soulAttack != null) soulAttack.OnHitConfirmed -= HandleHitConfirmed;
+        }
+
+        private void HandleHitConfirmed(AttackTier tier, HitResult result)
+        {
+            if (IsUltimateActive) return;
+
+            float gain = tier == AttackTier.Heavy ? heavyHitCharge : lightHitCharge;
+            if (result == HitResult.Killed) gain += killBonusCharge;
+            _ultimateCharge = Mathf.Min(ultimateChargeRequired, _ultimateCharge + gain);
+        }
+
+        /// <summary>Test, odul ve seviye sistemlerinin ultimate puani vermesi icin.</summary>
+        public void AddUltimateCharge(float amount)
+        {
+            if (amount <= 0f || IsUltimateActive) return;
+            _ultimateCharge = Mathf.Min(ultimateChargeRequired, _ultimateCharge + amount);
         }
 
         private void UpdateBodyForm()
@@ -335,6 +491,13 @@ namespace SoulSplit.Player
             dangerDistance = Mathf.Max(comfortableDistance + 0.01f, dangerDistance);
             maxDrainMultiplier = Mathf.Max(1f, maxDrainMultiplier);
             forcedReturnLockout = Mathf.Max(0f, forcedReturnLockout);
+            ultimateChargeRequired = Mathf.Max(1f, ultimateChargeRequired);
+            lightHitCharge = Mathf.Max(0f, lightHitCharge);
+            heavyHitCharge = Mathf.Max(0f, heavyHitCharge);
+            killBonusCharge = Mathf.Max(0f, killBonusCharge);
+            ultimateDuration = Mathf.Max(0.1f, ultimateDuration);
+            ultimateMovementMultiplier = Mathf.Max(1f, ultimateMovementMultiplier);
+            ultimateDamageMultiplier = Mathf.Max(1f, ultimateDamageMultiplier);
             maxMaterializationSearchRadius = Mathf.Max(0f, maxMaterializationSearchRadius);
             materializationSearchStep = Mathf.Clamp(materializationSearchStep, 0.1f, 1f);
         }

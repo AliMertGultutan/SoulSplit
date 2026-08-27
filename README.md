@@ -19,6 +19,7 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 | Hafif saldırı | Sol tık veya J | West button |
 | Ağır saldırı | Orta tık veya K | East button |
 | Ruh değişimi | Sağ tık veya E | North button |
+| Soul Surge ultimate | Q | Sağ omuz tuşu |
 | Duraklat / devam et | Esc | Start button |
 
 ## Oyun kuralları
@@ -26,6 +27,7 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 - Beden fiziksel, ruh ise ruhani hasar verir.
 - Ruhani düşmanlar bedene de saldırır; ruh dışarıdaysa beden veya ruhtan kendilerine daha yakın olanı hedefler.
 - Ruh dışarıdayken enerji mesafeye bağlı olarak daha hızlı tükenir.
+- Başarılı vuruşlar ve öldürmeler Soul Surge göstergesini doldurur. Ultimate aktifken ruh enerjisi tükenmez, hareket hızlanır ve saldırı hasarı artar.
 - Beden ve ruh ortak can kullanır; beden savunmasız bırakılırsa oyuncu ölebilir.
 - Checkpoint tetikleri yeniden doğuş konumunu günceller.
 - Ulaşılan en ileri checkpoint otomatik kaydedilir; ana menüden oyuna devam edilebilir veya onay vererek yeni oyun başlatılabilir.

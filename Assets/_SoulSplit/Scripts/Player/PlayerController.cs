@@ -134,6 +134,8 @@ namespace SoulSplit.Player
         public int WallDirection => _wallDirection;
         /// <summary>Su an egiliyor mu? Gorsel/hitbox sistemleri okuyabilir.</summary>
         public bool IsCrouching => _isCrouching;
+        /// <summary>Gecici gucler icin temel denge degerini bozmayan harici hiz carpani.</summary>
+        public float MovementSpeedMultiplier { get; set; } = 1f;
 
         /// <summary>
         /// Form degisimi/isinlanma gibi harici sistemlerin oyuncunun baktigi yonu
@@ -287,7 +289,8 @@ namespace SoulSplit.Player
             if (_knockbackLockCounter > 0f) return;
 
             float moveX = input.HorizontalInput;
-            float speedCap = _isCrouching ? maxSpeed * crouchSpeedMultiplier : maxSpeed;
+            float boostedMaxSpeed = maxSpeed * Mathf.Max(0.01f, MovementSpeedMultiplier);
+            float speedCap = _isCrouching ? boostedMaxSpeed * crouchSpeedMultiplier : boostedMaxSpeed;
             float targetSpeed = moveX * speedCap;
             float currentSpeed = _rb.linearVelocity.x;
 
