@@ -22,6 +22,7 @@ namespace SoulSplit.Player
         [SerializeField] private string heavyAttackActionName = "HeavyAttack";
         [SerializeField] private string soulSwitchActionName = "SoulSwitch";
         [SerializeField] private string ultimateActionName = "Ultimate";
+        [SerializeField] private string dodgeActionName = "Dodge";
 
         private InputAction _moveAction;
         private InputAction _jumpAction;
@@ -29,6 +30,7 @@ namespace SoulSplit.Player
         private InputAction _heavyAttackAction;
         private InputAction _soulSwitchAction;
         private InputAction _ultimateAction;
+        private InputAction _dodgeAction;
 
         /// <summary>Ham yon girdisi (-1..1).</summary>
         public Vector2 MoveInput { get; private set; }
@@ -46,6 +48,8 @@ namespace SoulSplit.Player
         public bool SoulSwitchPressedThisFrame { get; private set; }
         /// <summary>Ultimate gucunu etkinlestirme tusuna bu karede basildi mi?</summary>
         public bool UltimatePressedThisFrame { get; private set; }
+        /// <summary>Ruh Adimi kacinma tusuna bu karede basildi mi?</summary>
+        public bool DodgePressedThisFrame { get; private set; }
 
         [Header("Olu Bolge")]
         [Range(0f, 0.9f)]
@@ -68,6 +72,8 @@ namespace SoulSplit.Player
             _soulSwitchAction = map.FindAction(soulSwitchActionName, throwIfNotFound: true);
             string resolvedUltimateName = string.IsNullOrWhiteSpace(ultimateActionName) ? "Ultimate" : ultimateActionName;
             _ultimateAction = map.FindAction(resolvedUltimateName, throwIfNotFound: true);
+            string resolvedDodgeName = string.IsNullOrWhiteSpace(dodgeActionName) ? "Dodge" : dodgeActionName;
+            _dodgeAction = map.FindAction(resolvedDodgeName, throwIfNotFound: true);
         }
 
         private void OnEnable()
@@ -95,6 +101,7 @@ namespace SoulSplit.Player
             HeavyAttackPressedThisFrame = _heavyAttackAction.WasPressedThisFrame();
             SoulSwitchPressedThisFrame = _soulSwitchAction.WasPressedThisFrame();
             UltimatePressedThisFrame = _ultimateAction.WasPressedThisFrame();
+            DodgePressedThisFrame = _dodgeAction.WasPressedThisFrame();
         }
     }
 }

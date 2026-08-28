@@ -1,3 +1,5 @@
+using SoulSplit.Combat;
+using SoulSplit.Core;
 using UnityEngine;
 
 namespace SoulSplit.Player
@@ -9,7 +11,8 @@ namespace SoulSplit.Player
         Running,
         Jumping,
         Falling,
-        WallSliding
+        WallSliding,
+        Dashing
     }
 
     /// <summary>
@@ -69,6 +72,20 @@ namespace SoulSplit.Player
         [Tooltip("Duvardan ayrildiktan/tam degemedikten sonra hala duvar ziplamasi yapilabilecek sure (saniye). Zemin coyote time'inin duvar karsiligi — dar araliklarda 'kor bolge'de basilan zip tusunun bosa gitmesini engeller.")]
         [SerializeField] private float wallCoyoteTime = 0.09f;
 
+        [Header("Ruh Adimi (Kacinma)")]
+        [Tooltip("Kacinma boyunca uygulanan sabit yatay hiz.")]
+        [SerializeField] private float dodgeSpeed = 18f;
+        [Tooltip("Kacinma hareketinin surdugu sure (saniye).")]
+        [SerializeField] private float dodgeDuration = 0.16f;
+        [Tooltip("Iki kacinma arasindaki en kisa sure. Havada ayrica tek kullanim vardir.")]
+        [SerializeField] private float dodgeCooldown = 0.75f;
+        [Tooltip("Kacinma girdisinin fizik karesine kadar hatirlanma suresi.")]
+        [SerializeField] private float dodgeBufferTime = 0.12f;
+        [Tooltip("Ruh Adimi basladiginda verilen dokunulmazlik suresi.")]
+        [SerializeField] private float dodgeInvincibilityDuration = 0.20f;
+        [Tooltip("Ruh Adimi baslangicinda uretilen parcaciklarin rengi.")]
+        [SerializeField] private Color dodgeFxColor = new Color(0.42f, 0.9f, 1f, 0.9f);
+
         [Header("Egilme (Crouch)")]
         [Tooltip("Yerdeyken asagi yon (S / Down) basiliyken egilme aktif olur.")]
         [Range(0.1f, 1f)]
@@ -92,6 +109,7 @@ namespace SoulSplit.Player
 
         private Rigidbody2D _rb;
         private CapsuleCollider2D _capsule;
+        private Health _health;
 
         // --- Durum ---
         private PlayerState _state = PlayerState.Idle;
@@ -100,7 +118,10 @@ namespace SoulSplit.Player
         private int _lastWallDirection;       // wall coyote sirasinda hangi yone itilecegini hatirlar
         private bool _isWallSliding;
         private bool _isCrouching;
+        private bool _isDodging;
+        private bool _airDodgeAvailable = true;
         private int _facingDirection = 1;
+        private int _dodgeDirection = 1;
         private int _airJumpsLeft;
 
         private Vector2 _standingColliderSize;
@@ -112,6 +133,9 @@ namespace SoulSplit.Player
         private float _wallJumpLockCounter;
         private float _wallCoyoteCounter;
         private float _knockbackLockCounter;
+        private float _dodgeBufferCounter;
+        private float _dodgeTimer;
+        private float _dodgeCooldownCounter;
 
         // --- Update'te toplanip FixedUpdate'te tuketilen bayrak ---
         private bool _jumpCutRequested;
@@ -134,8 +158,14 @@ namespace SoulSplit.Player
         public int WallDirection => _wallDirection;
         /// <summary>Su an egiliyor mu? Gorsel/hitbox sistemleri okuyabilir.</summary>
         public bool IsCrouching => _isCrouching;
+        /// <summary>Ruh Adimi hareketi su an etkin mi?</summary>
+        public bool IsDodging => _isDodging;
+        /// <summary>Cooldown ve hava kullanim kurallarina gore yeni kacinma hazir mi?</summary>
+        public bool IsDodgeReady => !_isDodging && _dodgeCooldownCounter <= 0f && (_isGrounded || _airDodgeAvailable);
         /// <summary>Gecici gucler icin temel denge degerini bozmayan harici hiz carpani.</summary>
         public float MovementSpeedMultiplier { get; set; } = 1f;
+        /// <summary>Basarili her Ruh Adimi baslangicinda tetiklenir.</summary>
+        public event System.Action OnDodged;
 
         /// <summary>
         /// Form degisimi/isinlanma gibi harici sistemlerin oyuncunun baktigi yonu
@@ -150,6 +180,7 @@ namespace SoulSplit.Player
         {
             _rb = GetComponent<Rigidbody2D>();
             _capsule = GetComponent<CapsuleCollider2D>();
+            _health = GetComponent<Health>();
             if (input == null) input = GetComponent<PlayerInputHandler>();
 
             if (_capsule != null)
@@ -164,6 +195,13 @@ namespace SoulSplit.Player
             _airJumpsLeft = maxAirJumps;
         }
 
+        private void OnDisable()
+        {
+            if (_rb != null && _isDodging) _rb.gravityScale = baseGravityScale;
+            _isDodging = false;
+            _dodgeBufferCounter = 0f;
+        }
+
         private void Update()
         {
             // Girdi okuma ve kare bazli zamanlayicilar burada.
@@ -171,11 +209,27 @@ namespace SoulSplit.Player
             else _jumpBufferCounter -= Time.deltaTime;
 
             if (input.JumpReleasedThisFrame) _jumpCutRequested = true;
+            if (input.DodgePressedThisFrame) RequestDodge();
 
             _coyoteCounter -= Time.deltaTime;
             _wallJumpLockCounter -= Time.deltaTime;
             _wallCoyoteCounter -= Time.deltaTime;
             _knockbackLockCounter -= Time.deltaTime;
+            _dodgeBufferCounter -= Time.deltaTime;
+            _dodgeCooldownCounter -= Time.deltaTime;
+        }
+
+        /// <summary>
+        /// Bir Ruh Adimi istegini kisa sureligine tamponlar. Girdi sistemi ve
+        /// testler ayni kapidan gecer; gercek fizik hareketi FixedUpdate'te baslar.
+        /// </summary>
+        public bool RequestDodge()
+        {
+            if (!isActiveAndEnabled || _health == null || _health.IsDead || TimeScaleController.IsPaused)
+                return false;
+
+            _dodgeBufferCounter = Mathf.Max(_dodgeBufferCounter, dodgeBufferTime);
+            return true;
         }
 
         /// <summary>
@@ -192,6 +246,11 @@ namespace SoulSplit.Player
         private void FixedUpdate()
         {
             CheckCollisions();
+            if (HandleDodge())
+            {
+                UpdateState();
+                return;
+            }
             HandleCrouch();
             HandleWallSlide();
             HandleHorizontalMovement();
@@ -238,6 +297,7 @@ namespace SoulSplit.Player
             {
                 _coyoteCounter = coyoteTime;
                 _airJumpsLeft = maxAirJumps;
+                _airDodgeAvailable = true;
             }
 
             bool wallRight = Physics2D.OverlapBox(position + wallCheckOffset, wallCheckSize, 0f, groundLayer);
@@ -307,6 +367,49 @@ namespace SoulSplit.Player
             {
                 _facingDirection = moveX > 0f ? 1 : -1;
             }
+        }
+
+        /// <summary>
+        /// Kisa, yatay ve okunabilir bir kacinma uygular. Hareket sirasinda
+        /// normal ivme/yercekimi devre disidir; duvar carpismasini Rigidbody2D cozer.
+        /// </summary>
+        private bool HandleDodge()
+        {
+            if (_isDodging)
+            {
+                _dodgeTimer -= Time.fixedDeltaTime;
+                if (_dodgeTimer <= 0f)
+                {
+                    _isDodging = false;
+                    _rb.gravityScale = baseGravityScale;
+                    return false;
+                }
+
+                _rb.gravityScale = 0f;
+                _rb.linearVelocity = new Vector2(_dodgeDirection * dodgeSpeed, 0f);
+                return true;
+            }
+
+            if (_dodgeBufferCounter <= 0f || !IsDodgeReady || _isCrouching || _knockbackLockCounter > 0f)
+                return false;
+
+            _dodgeBufferCounter = 0f;
+            _dodgeCooldownCounter = dodgeCooldown;
+            _dodgeTimer = dodgeDuration;
+            _dodgeDirection = Mathf.Abs(input.HorizontalInput) > 0.1f
+                ? (input.HorizontalInput > 0f ? 1 : -1)
+                : _facingDirection;
+            _facingDirection = _dodgeDirection;
+            _isDodging = true;
+            if (!_isGrounded) _airDodgeAvailable = false;
+
+            _rb.gravityScale = 0f;
+            _rb.linearVelocity = new Vector2(_dodgeDirection * dodgeSpeed, 0f);
+            _health.GrantInvincibility(dodgeInvincibilityDuration);
+            ParticleFX.Burst(transform.position, dodgeFxColor, 8, 3.2f, 0.11f, 0.24f,
+                65f, new Vector2(-_dodgeDirection, 0.25f), 0f);
+            OnDodged?.Invoke();
+            return true;
         }
 
         /// <summary>Ziplama onceligi: duvar ziplamasi > yer/coyote ziplamasi > hava ziplamasi.</summary>
@@ -398,7 +501,8 @@ namespace SoulSplit.Player
         /// <summary>Basit durum makinesi. Raporlama amacli; hareketi kendisi yonetmiyor.</summary>
         private void UpdateState()
         {
-            if (_isWallSliding) _state = PlayerState.WallSliding;
+            if (_isDodging) _state = PlayerState.Dashing;
+            else if (_isWallSliding) _state = PlayerState.WallSliding;
             else if (!_isGrounded && _rb.linearVelocity.y > 0.01f) _state = PlayerState.Jumping;
             else if (!_isGrounded) _state = PlayerState.Falling;
             else if (Mathf.Abs(_rb.linearVelocity.x) > 0.1f) _state = PlayerState.Running;
@@ -416,6 +520,16 @@ namespace SoulSplit.Player
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireCube(p + wallCheckOffset, wallCheckSize);
             Gizmos.DrawWireCube(p + new Vector2(-wallCheckOffset.x, wallCheckOffset.y), wallCheckSize);
+        }
+
+        private void OnValidate()
+        {
+            maxAirJumps = Mathf.Max(0, maxAirJumps);
+            dodgeSpeed = Mathf.Max(0f, dodgeSpeed);
+            dodgeDuration = Mathf.Max(0.01f, dodgeDuration);
+            dodgeCooldown = Mathf.Max(dodgeDuration, dodgeCooldown);
+            dodgeBufferTime = Mathf.Max(0f, dodgeBufferTime);
+            dodgeInvincibilityDuration = Mathf.Max(0f, dodgeInvincibilityDuration);
         }
     }
 }

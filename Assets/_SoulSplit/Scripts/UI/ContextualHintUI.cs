@@ -78,12 +78,16 @@ namespace SoulSplit.UI
             string heavyAttack = Key("HeavyAttack", fallback: "K");
             string soulSwitch = Key("SoulSwitch", fallback: "E");
             string ultimate = Key("Ultimate", fallback: "Q");
+            string dodge = Key("Dodge", fallback: "LEFT SHIFT");
 
             if (x < 3.5f)
                 return $"HAREKET  {left} {right}     ZIPLA  {jump}";
 
             if (x < 9.5f)
                 return $"ALÇAK GEÇİT     {down} BASILI TUT";
+
+            if (x < 15f)
+                return $"RUH ADIMI     {dodge}  •  KISA SÜRELİ DOKUNULMAZLIK";
 
             if (x < 22f)
                 return $"SALDIRI  {lightAttack}     AĞIR SALDIRI  {heavyAttack}";

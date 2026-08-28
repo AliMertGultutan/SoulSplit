@@ -8,6 +8,7 @@ using SoulSplit.Enemies;
 using SoulSplit.Player;
 using SoulSplit.UI;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
@@ -177,6 +178,31 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
+        public IEnumerator SoulStep_DashesAndProtectsPlayerDuringItsWindow()
+        {
+            GameObject player = GameObject.Find("Player");
+            PlayerController controller = player?.GetComponent<PlayerController>();
+            Health health = player?.GetComponent<Health>();
+            Rigidbody2D body = player?.GetComponent<Rigidbody2D>();
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(health, Is.Not.Null);
+            Assert.That(body, Is.Not.Null);
+
+            int healthBefore = health.Current;
+            Assert.That(controller.RequestDodge(), Is.True);
+            yield return new WaitForFixedUpdate();
+
+            Assert.That(controller.IsDodging, Is.True);
+            Assert.That(controller.State, Is.EqualTo(PlayerState.Dashing));
+            Assert.That(Mathf.Abs(body.linearVelocity.x), Is.GreaterThan(15f));
+            Assert.That(health.IsInvincible, Is.True);
+            Assert.That(health.TryTakeDamage(1, health.VulnerableTo == DamageRealm.Spiritual
+                ? DamageType.Spiritual
+                : DamageType.Physical), Is.EqualTo(HitResult.Ignored));
+            Assert.That(health.Current, Is.EqualTo(healthBefore));
+        }
+
+        [UnityTest]
         public IEnumerator ConsecutiveHits_BuildFlowAndIncreaseSoulSurgeReward()
         {
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
@@ -217,6 +243,44 @@ namespace SoulSplit.Tests
             Assert.That(pauseMenu.IsOpen, Is.False);
             Assert.That(TimeScaleController.IsPaused, Is.False);
             Assert.That(Time.timeScale, Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerDeath_FreezesBodyAndOffersRecoveryChoices()
+        {
+            GameObject player = GameObject.Find("Player");
+            Assert.That(player, Is.Not.Null);
+            Health health = player.GetComponent<Health>();
+            Rigidbody2D body = player.GetComponent<Rigidbody2D>();
+            PlayerController controller = player.GetComponent<PlayerController>();
+            Assert.That(health, Is.Not.Null);
+
+            health.Kill();
+            yield return new WaitForSecondsRealtime(1.05f);
+
+            DeathScreenUI deathScreen = Object.FindAnyObjectByType<DeathScreenUI>();
+            Assert.That(deathScreen, Is.Not.Null);
+            Assert.That(deathScreen.IsOpen, Is.True);
+            Assert.That(body.simulated, Is.False, "Olu beden fizik nedeniyle dusmeye devam etmemelidir.");
+            Assert.That(controller.enabled, Is.False);
+            Assert.That(TimeScaleController.IsPaused, Is.True);
+            Assert.That(GameObject.Find("RetryCheckpointButton"), Is.Not.Null);
+            Assert.That(GameObject.Find("DeathNewGameButton"), Is.Not.Null);
+            Assert.That(GameObject.Find("DeathMainMenuButton"), Is.Not.Null);
+            Assert.That(EventSystem.current.currentSelectedGameObject?.name,
+                Is.EqualTo("RetryCheckpointButton"));
+
+            deathScreen.StartNewGame();
+            Assert.That(deathScreen.IsConfirmationOpen, Is.True,
+                "Kaydi silecek yeni oyun eylemi onay istemelidir.");
+            Assert.That(EventSystem.current.currentSelectedGameObject?.name,
+                Is.EqualTo("CancelDeathNewGameButton"));
+            deathScreen.CancelNewGame();
+
+            deathScreen.ReturnToMainMenu();
+            yield return null;
+            Assert.That(TimeScaleController.IsPaused, Is.False);
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("MainMenu"));
         }
 
         [UnityTest]

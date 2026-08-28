@@ -18,7 +18,6 @@ namespace SoulSplit.Core
             PlayerDeathHandler handler = other.GetComponentInParent<PlayerDeathHandler>();
             if (handler == null) return;
 
-            handler.SetCheckpoint(transform);
             ProgressionSave.SaveCheckpoint(
                 SceneManager.GetActiveScene().name,
                 gameObject.name,

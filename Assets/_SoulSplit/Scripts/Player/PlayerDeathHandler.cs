@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using SoulSplit.Combat;
 using SoulSplit.Core;
+using SoulSplit.UI;
 using UnityEngine.SceneManagement;
 
 namespace SoulSplit.Player
@@ -13,8 +14,8 @@ namespace SoulSplit.Player
     /// kullandigimiz icin bu kural kendiliginden isliyor: ruh geride kalan
     /// bedeni koruyamazsa oyun biter.
     ///
-    /// Yeniden dogus KASITLI olarak hizli: raporda "hizli respawn" var,
-    /// cunku ceza olum degil, kaybedilen ilerleme olmali.
+    /// Olumden sonra oyuncunun devam, yeni oyun veya ana menu kararini
+    /// kendisinin vermesi icin fizik durdurulur ve olum ekrani acilir.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(Health), typeof(PlayerController))]
     public class PlayerDeathHandler : MonoBehaviour
@@ -26,17 +27,13 @@ namespace SoulSplit.Player
         [SerializeField] private SoulSwitchManager switchManager;
         [SerializeField] private SpriteRenderer visual;
 
-        [Header("Yeniden Dogus")]
-        [Tooltip("Olumden sonra kac saniye beklenip yeniden doguluyor.")]
+        [Header("Olum Ekrani")]
+        [Tooltip("Olumden sonra seceneklerin gorunmesine kadar gecen toplam sure.")]
         [SerializeField] private float respawnDelay = 0.9f;
-        [Tooltip("Bos birakilirsa oyunun basladigi konum kullanilir.")]
-        [SerializeField] private Transform checkpoint;
-
         [Header("Olum Efekti")]
         [SerializeField] private float deathFadeDuration = 0.5f;
 
         private Rigidbody2D _rb;
-        private Vector3 _defaultSpawn;
         private bool _isDying;
 
         /// <summary>Kac kez olundu. Test ve rapor icin faydali.</summary>
@@ -48,8 +45,6 @@ namespace SoulSplit.Player
             if (health == null) health = GetComponent<Health>();
             if (controller == null) controller = GetComponent<PlayerController>();
             if (input == null) input = GetComponent<PlayerInputHandler>();
-            _defaultSpawn = transform.position;
-
             if (health == null || controller == null || _rb == null)
             {
                 Debug.LogError("[PlayerDeathHandler] Zorunlu oyuncu bilesenleri eksik; yeniden dogus devre disi.", this);
@@ -67,7 +62,6 @@ namespace SoulSplit.Player
             if (!ProgressionSave.TryConsumeResume(SceneManager.GetActiveScene().name, out ProgressionSave.CheckpointData saved))
                 return;
 
-            _defaultSpawn = saved.Position;
             transform.position = saved.Position;
             _rb.position = saved.Position;
             _rb.linearVelocity = Vector2.zero;
@@ -78,9 +72,6 @@ namespace SoulSplit.Player
         {
             if (health != null) health.OnDeath -= HandleDeath;
         }
-
-        /// <summary>Level tasarimindaki kontrol noktalari bunu cagirir.</summary>
-        public void SetCheckpoint(Transform newCheckpoint) => checkpoint = newCheckpoint;
 
         private void HandleDeath()
         {
@@ -96,28 +87,15 @@ namespace SoulSplit.Player
             if (switchManager != null) switchManager.ForceReturnToBody();
 
             controller.enabled = false;
+            if (input != null) input.enabled = false;
+            if (switchManager != null) switchManager.enabled = false;
             _rb.linearVelocity = Vector2.zero;
             _rb.simulated = false;
 
             yield return FadeVisual(1f, 0f, deathFadeDuration);
             yield return new WaitForSeconds(Mathf.Max(0f, respawnDelay - deathFadeDuration));
 
-            Respawn();
-        }
-
-        private void Respawn()
-        {
-            transform.position = checkpoint != null ? checkpoint.position : _defaultSpawn;
-
-            _rb.simulated = true;
-            _rb.linearVelocity = Vector2.zero;
-            controller.enabled = true;
-
-            health.ResetHealth();
-            if (switchManager != null) switchManager.ResetEnergy();
-
-            StartCoroutine(FadeVisual(0f, 1f, deathFadeDuration * 0.6f));
-            _isDying = false;
+            DeathScreenUI.GetOrCreate().Show();
         }
 
         private IEnumerator FadeVisual(float from, float to, float duration)

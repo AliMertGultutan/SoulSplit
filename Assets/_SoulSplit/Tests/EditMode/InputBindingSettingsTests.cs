@@ -79,5 +79,13 @@ namespace SoulSplit.Tests
             Assert.That(InputBindingSettings.HasSavedOverrides, Is.False);
             Assert.That(InputBindingSettings.GetDisplayName(action, bindingIndex), Does.Contain("Q"));
         }
+
+        [Test]
+        public void Dodge_HasRebindableKeyboardDefault()
+        {
+            Assert.That(InputBindingSettings.TryGetKeyboardBinding("Dodge", null,
+                out InputAction action, out int bindingIndex), Is.True);
+            Assert.That(InputBindingSettings.GetDisplayName(action, bindingIndex), Does.Contain("SHIFT"));
+        }
     }
 }

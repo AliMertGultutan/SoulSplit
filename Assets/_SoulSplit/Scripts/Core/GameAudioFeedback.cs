@@ -33,6 +33,7 @@ namespace SoulSplit.Core
         private AudioClip _soulReturnClip;
         private AudioClip _ultimateClip;
         private AudioClip _checkpointClip;
+        private AudioClip _dodgeClip;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void RegisterBootstrap()
@@ -86,6 +87,7 @@ namespace SoulSplit.Core
             {
                 _player.OnJumped += HandleJump;
                 _player.OnWallJumped += HandleWallJump;
+                _player.OnDodged += HandleDodge;
             }
 
             if (_switchManager != null)
@@ -118,6 +120,7 @@ namespace SoulSplit.Core
             {
                 _player.OnJumped -= HandleJump;
                 _player.OnWallJumped -= HandleWallJump;
+                _player.OnDodged -= HandleDodge;
             }
 
             if (_switchManager != null)
@@ -146,6 +149,7 @@ namespace SoulSplit.Core
 
         private void HandleJump() => Play(_jumpClip, 0.38f);
         private void HandleWallJump() => Play(_wallJumpClip, 0.42f);
+        private void HandleDodge() => Play(_dodgeClip, 0.46f);
 
         private void HandleAttack(AttackTier tier)
         {
@@ -202,6 +206,7 @@ namespace SoulSplit.Core
             _soulReturnClip = CreateSweep("SoulReturn", 0.28f, 690f, 210f, 0.16f, 0.30f, 41);
             _ultimateClip = CreateSweep("SoulSurge", 0.62f, 180f, 1080f, 0.08f, 0.48f, 47);
             _checkpointClip = CreateSweep("Checkpoint", 0.42f, 380f, 820f, 0.04f, 0.42f, 43);
+            _dodgeClip = CreateSweep("SoulStep", 0.16f, 720f, 210f, 0.20f, 0.24f, 53);
         }
 
         private static AudioClip CreateSweep(string name, float duration, float startFrequency,

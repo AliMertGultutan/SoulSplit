@@ -160,5 +160,15 @@ namespace SoulSplit.Combat
             _invincibleUntil = 0f;
             OnHealthChanged?.Invoke();
         }
+
+        /// <summary>
+        /// Kacinma gibi savunma mekaniklerinin mevcut i-frame'i kisaltmadan
+        /// gecici dokunulmazlik vermesini saglar. Kill() bu korumayi yine atlar.
+        /// </summary>
+        public void GrantInvincibility(float duration)
+        {
+            if (IsDead || duration <= 0f) return;
+            _invincibleUntil = Mathf.Max(_invincibleUntil, Time.time + duration);
+        }
     }
 }

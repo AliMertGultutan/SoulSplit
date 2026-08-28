@@ -20,6 +20,7 @@ Projeyi Unity Hub üzerinden açın. Başlangıç sahnesi `Assets/_SoulSplit/Sce
 | Ağır saldırı | Orta tık veya K | East button |
 | Ruh değişimi | Sağ tık veya E | North button |
 | Soul Surge ultimate | Q | Sağ omuz tuşu |
+| Ruh Adımı / kaçınma | Left Shift | Sol omuz tuşu |
 | Duraklat / devam et | Esc | Start button |
 
 Klavye kontrolleri ana menü veya duraklatma menüsündeki `Ayarlar > Klavye Tuşlarını Ayarla`
@@ -35,6 +36,8 @@ Oyun içi yönlendirmeler de varsayılan tuşlar yerine oyuncunun etkin atamalar
 - Cooldown bitmeden hemen önce basılan hafif veya ağır saldırı kısa süreliğine tamponlanır; erken basılan komut kaybolmadan sıradaki saldırıya dönüşür.
 - Art arda başarılı vuruşlar `AKIŞ` zincirini yükseltir ve Soul Surge kazanımını kademeli olarak artırır; zincir HUD üzerinde açık metinle gösterilir.
 - Beden ve ruh ortak can kullanır; beden savunmasız bırakılırsa oyuncu ölebilir.
+- Beden formundaki `Ruh Adımı`, kısa bir yatay kaçınma ve dokunulmazlık penceresi sağlar; havada yere değene kadar yalnızca bir kez kullanılabilir.
+- Ölüm anında karakter fiziği ve kontrolü durur. Ölüm ekranından son checkpoint'e dönülebilir, onay vererek yeni oyun başlatılabilir veya ana menüye çıkılabilir.
 - Checkpoint tetikleri yeniden doğuş konumunu günceller.
 - Ulaşılan en ileri checkpoint otomatik kaydedilir; ana menüden oyuna devam edilebilir veya onay vererek yeni oyun başlatılabilir.
 - Ana menüden ve duraklatma menüsünden ortak Ayarlar ekranına ulaşılabilir.
