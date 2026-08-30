@@ -87,5 +87,23 @@ namespace SoulSplit.Tests
                 out InputAction action, out int bindingIndex), Is.True);
             Assert.That(InputBindingSettings.GetDisplayName(action, bindingIndex), Does.Contain("SHIFT"));
         }
+
+        [Test]
+        public void Jump_AcceptsSpaceAndWByDefault()
+        {
+            InputAction jump = InputBindingSettings.Actions.FindActionMap("Player")?.FindAction("Jump");
+            Assert.That(jump, Is.Not.Null);
+
+            bool hasSpace = false;
+            bool hasW = false;
+            foreach (InputBinding binding in jump.bindings)
+            {
+                hasSpace |= binding.effectivePath == "<Keyboard>/space";
+                hasW |= binding.effectivePath == "<Keyboard>/w";
+            }
+
+            Assert.That(hasSpace, Is.True, "Space varsayilan ziplama tusu olarak kalmalidir.");
+            Assert.That(hasW, Is.True, "W alternatif ziplama tusu olarak calismalidir.");
+        }
     }
 }

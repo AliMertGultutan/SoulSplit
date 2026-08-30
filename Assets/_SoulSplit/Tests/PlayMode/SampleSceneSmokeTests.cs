@@ -184,16 +184,22 @@ namespace SoulSplit.Tests
             PlayerController controller = player?.GetComponent<PlayerController>();
             Health health = player?.GetComponent<Health>();
             Rigidbody2D body = player?.GetComponent<Rigidbody2D>();
+            CapsuleCollider2D capsule = player?.GetComponent<CapsuleCollider2D>();
             Assert.That(controller, Is.Not.Null);
             Assert.That(health, Is.Not.Null);
             Assert.That(body, Is.Not.Null);
+            Assert.That(capsule, Is.Not.Null);
 
             int healthBefore = health.Current;
+            float standingHeight = capsule.size.y;
             Assert.That(controller.RequestDodge(), Is.True);
             yield return new WaitForFixedUpdate();
 
             Assert.That(controller.IsDodging, Is.True);
             Assert.That(controller.State, Is.EqualTo(PlayerState.Dashing));
+            Assert.That(controller.IsCrouching, Is.True);
+            Assert.That(capsule.size.y, Is.LessThan(standingHeight),
+                "Takla sirasinda fiziksel profil alcak gecitlere sigacak kadar kuculmelidir.");
             Assert.That(Mathf.Abs(body.linearVelocity.x), Is.GreaterThan(15f));
             Assert.That(health.IsInvincible, Is.True);
             Assert.That(health.TryTakeDamage(1, health.VulnerableTo == DamageRealm.Spiritual

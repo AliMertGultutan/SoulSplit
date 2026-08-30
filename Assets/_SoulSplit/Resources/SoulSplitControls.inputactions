@@ -203,6 +203,17 @@
                     "isPartOfComposite": false
                 },
                 {
+                    "name": "Alternative",
+                    "id": "65c1a85d-f8e6-4aa5-8855-79f0989a56b7",
+                    "path": "<Keyboard>/w",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Jump",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
                     "name": "",
                     "id": "89a4c79a-263a-4122-a038-3c5fb1712a01",
                     "path": "<Gamepad>/buttonSouth",

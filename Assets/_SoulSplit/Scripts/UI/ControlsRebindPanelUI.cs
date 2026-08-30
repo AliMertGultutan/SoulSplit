@@ -46,8 +46,8 @@ namespace SoulSplit.UI
             new BindingSpec("Move", "down", "AŞAĞI", 0, 1),
             new BindingSpec("Move", "left", "SOL", 0, 2),
             new BindingSpec("Move", "right", "SAĞ", 0, 3),
-            new BindingSpec("Dodge", null, "RUH ADIMI", 0, 4),
-            new BindingSpec("Jump", null, "ZIPLAMA", 1, 0),
+            new BindingSpec("Dodge", null, "TAKLA", 0, 4),
+            new BindingSpec("Jump", null, "ZIPLAMA (W ALTERNATİF)", 1, 0),
             new BindingSpec("Attack", null, "HAFİF SALDIRI", 1, 1),
             new BindingSpec("HeavyAttack", null, "AĞIR SALDIRI", 1, 2),
             new BindingSpec("SoulSwitch", null, "RUH DEĞİŞİMİ", 1, 3),
@@ -360,7 +360,7 @@ namespace SoulSplit.UI
                 case "HeavyAttack": return "AĞIR SALDIRI";
                 case "SoulSwitch": return "RUH DEĞİŞİMİ";
                 case "Ultimate": return "SOUL SURGE";
-                case "Dodge": return "RUH ADIMI";
+                case "Dodge": return "TAKLA";
                 default: return actionName.ToUpperInvariant();
             }
         }

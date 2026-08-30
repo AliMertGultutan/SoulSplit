@@ -153,6 +153,7 @@ namespace SoulSplit.Player
         private float _dustCooldownTimer;
         private float _wallSlideDustTimer;
         private float _crouchAmount;
+        private bool _wasDodging;
 
         private float _attackTimer;
         private AttackOverlayTimings _lightAttackTimings;
@@ -392,6 +393,26 @@ namespace SoulSplit.Player
 
         private void ApplyTilt(PlayerState state, Vector2 velocity, bool grounded, float dt)
         {
+            if (state == PlayerState.Dashing)
+            {
+                // Shift hareketi okunabilir bir tam takladir. Fizik rotasyonu
+                // kilitli kalir; yalnizca gorsel cocuk kendi ekseninde doner.
+                _currentTilt = -controller.DodgeDirection * 360f * controller.DodgeProgressNormalized;
+                _tiltAngularVelocity = 0f;
+                transform.localRotation = Quaternion.Euler(0f, 0f, _currentTilt);
+                _wasDodging = true;
+                return;
+            }
+
+            if (_wasDodging)
+            {
+                // -360 ve 360 gorsel olarak sifirdir; yay hesabinin ters yone
+                // fazladan bir tur atmamasi icin aciyi en yakin esdegerine sar.
+                _currentTilt = Mathf.DeltaAngle(0f, _currentTilt);
+                _tiltAngularVelocity = 0f;
+                _wasDodging = false;
+            }
+
             float targetTilt;
 
             if (state == PlayerState.WallSliding)

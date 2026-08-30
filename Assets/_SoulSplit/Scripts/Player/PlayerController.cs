@@ -176,6 +176,12 @@ namespace SoulSplit.Player
         public bool IsCrouching => _isCrouching;
         /// <summary>Ruh Adimi hareketi su an etkin mi?</summary>
         public bool IsDodging => _isDodging;
+        /// <summary>Taklanin 0-1 arasi tamamlanma orani; gorsel tam tur donusu bununla oynatir.</summary>
+        public float DodgeProgressNormalized => !_isDodging || dodgeDuration <= 0f
+            ? 0f
+            : 1f - Mathf.Clamp01(_dodgeTimer / dodgeDuration);
+        /// <summary>Taklanin yatay yonu: -1 sol, +1 sag.</summary>
+        public int DodgeDirection => _dodgeDirection;
         /// <summary>Cooldown ve hava kullanim kurallarina gore yeni kacinma hazir mi?</summary>
         public bool IsDodgeReady => !_isDodging && _dodgeCooldownCounter <= 0f && (_isGrounded || _airDodgeAvailable);
         /// <summary>Gecici gucler icin temel denge degerini bozmayan harici hiz carpani.</summary>
@@ -216,6 +222,7 @@ namespace SoulSplit.Player
             if (_rb != null && _isDodging) _rb.gravityScale = baseGravityScale;
             _isDodging = false;
             _dodgeBufferCounter = 0f;
+            SetCrouching(false, force: true);
         }
 
         private void Update()
@@ -286,8 +293,18 @@ namespace SoulSplit.Player
         {
             bool wantsCrouch = _isGrounded && !_isWallSliding && input.MoveInput.y < -crouchInputThreshold;
 
-            if (wantsCrouch == _isCrouching) return;
-            _isCrouching = wantsCrouch;
+            // Takla bittiginde oyuncu hâlâ alcak tavan altindaysa collider'i zorla
+            // buyutme; bosluk bulunana kadar egik profil korunur.
+            if (!wantsCrouch && _isCrouching && !CanUseStandingCollider())
+                wantsCrouch = true;
+
+            SetCrouching(wantsCrouch);
+        }
+
+        private void SetCrouching(bool crouching, bool force = false)
+        {
+            if (!force && crouching == _isCrouching) return;
+            _isCrouching = crouching;
 
             if (_capsule == null) return;
 
@@ -303,6 +320,34 @@ namespace SoulSplit.Player
                 _capsule.size = _standingColliderSize;
                 _capsule.offset = _standingColliderOffset;
             }
+        }
+
+        private bool CanUseStandingCollider()
+        {
+            if (_capsule == null || !_capsule.enabled) return true;
+
+            float currentTop = _capsule.offset.y + _capsule.size.y * 0.5f;
+            float standingTop = _standingColliderOffset.y + _standingColliderSize.y * 0.5f;
+            float localClearanceHeight = standingTop - currentTop;
+            if (localClearanceHeight <= 0.01f) return true;
+
+            Vector3 scale = transform.lossyScale;
+            float clearanceHeight = localClearanceHeight * Mathf.Abs(scale.y);
+            Vector2 center = _rb.position + new Vector2(
+                _standingColliderOffset.x * scale.x,
+                (currentTop + localClearanceHeight * 0.5f) * scale.y);
+            Vector2 size = new Vector2(
+                _standingColliderSize.x * Mathf.Abs(scale.x) * 0.9f,
+                Mathf.Max(0.02f, clearanceHeight * 0.92f));
+
+            Collider2D[] overlaps = Physics2D.OverlapBoxAll(
+                center, size, transform.eulerAngles.z, groundLayer);
+            foreach (Collider2D overlap in overlaps)
+            {
+                if (overlap != null && overlap != _capsule && !overlap.isTrigger)
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>Zemin ve duvar temasini OverlapBox ile kontrol eder.</summary>
@@ -412,7 +457,7 @@ namespace SoulSplit.Player
                 return true;
             }
 
-            if (_dodgeBufferCounter <= 0f || !IsDodgeReady || _isCrouching || _knockbackLockCounter > 0f)
+            if (_dodgeBufferCounter <= 0f || !IsDodgeReady || _knockbackLockCounter > 0f)
                 return false;
 
             _dodgeBufferCounter = 0f;
@@ -423,6 +468,9 @@ namespace SoulSplit.Player
                 : _facingDirection;
             _facingDirection = _dodgeDirection;
             _isDodging = true;
+            // Takla boyunca fiziksel profil de kuculur; sadece sprite donmez,
+            // oyuncu gercekten alcak platformlarin altindan gecebilir.
+            SetCrouching(true);
             if (!_isGrounded) _airDodgeAvailable = false;
 
             _rb.gravityScale = 0f;

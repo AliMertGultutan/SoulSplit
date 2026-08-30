@@ -74,6 +74,7 @@ namespace SoulSplit.UI
             string right = Key("Move", "right", "D");
             string down = Key("Move", "down", "S");
             string jump = Key("Jump", fallback: "SPACE");
+            if (!jump.Contains("W")) jump += " / W";
             string lightAttack = Key("Attack", fallback: "J");
             string heavyAttack = Key("HeavyAttack", fallback: "K");
             string soulSwitch = Key("SoulSwitch", fallback: "E");
@@ -87,7 +88,7 @@ namespace SoulSplit.UI
                 return $"ALÇAK GEÇİT     {down} BASILI TUT";
 
             if (x < 15f)
-                return $"RUH ADIMI     {dodge}  •  KISA SÜRELİ DOKUNULMAZLIK";
+                return $"TAKLA     {dodge}  •  DAR GEÇİTLERDEN GEÇER";
 
             if (x < 22f)
                 return $"SALDIRI  {lightAttack}     AĞIR SALDIRI  {heavyAttack}";
