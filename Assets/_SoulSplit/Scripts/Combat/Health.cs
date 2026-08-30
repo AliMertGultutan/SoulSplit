@@ -69,6 +69,8 @@ namespace SoulSplit.Combat
         public event Action OnDeath;
         /// <summary>Can degeri her degistiginde tetiklenir. UI bunu dinler.</summary>
         public event Action OnHealthChanged;
+        /// <summary>Gercekten geri kazanilan can miktariyla tetiklenir.</summary>
+        public event Action<int> OnHealed;
 
         private void Awake()
         {
@@ -159,6 +161,32 @@ namespace SoulSplit.Combat
             _current = maxHealth;
             _invincibleUntil = 0f;
             OnHealthChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Olmayan bir hedefe, maksimum cani asmadan can kazandirir.
+        /// Gercekten eklenen miktari dondurur; UI ve ses OnHealthChanged/OnHealed
+        /// uzerinden tek bir kez bilgilendirilir.
+        /// </summary>
+        public int Heal(int amount)
+        {
+            if (IsDead || amount <= 0 || _current >= maxHealth) return 0;
+
+            int previous = _current;
+            _current = Mathf.Min(maxHealth, _current + amount);
+            int healedAmount = _current - previous;
+            if (healedAmount <= 0) return 0;
+
+            OnHealthChanged?.Invoke();
+            OnHealed?.Invoke(healedAmount);
+            return healedAmount;
+        }
+
+        /// <summary>Maksimum canin yuzdesini en az bir can olacak sekilde geri kazandirir.</summary>
+        public int HealPercent(float normalizedAmount)
+        {
+            if (normalizedAmount <= 0f) return 0;
+            return Heal(Mathf.Max(1, Mathf.CeilToInt(maxHealth * normalizedAmount)));
         }
 
         /// <summary>

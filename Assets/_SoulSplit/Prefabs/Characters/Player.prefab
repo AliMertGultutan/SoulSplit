@@ -1,0 +1,664 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1418160934618577827
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1724479662673075517}
+  - component: {fileID: 3873710234435981399}
+  - component: {fileID: 6160693378261301275}
+  - component: {fileID: 4164782960512479183}
+  - component: {fileID: 8308852143148964370}
+  - component: {fileID: 6409895983483082473}
+  - component: {fileID: 1347767912384741384}
+  - component: {fileID: 8459986277603932649}
+  - component: {fileID: 7105433419720970967}
+  - component: {fileID: 5170160583731526920}
+  m_Layer: 10
+  m_Name: Player
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1724479662673075517
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3964660694778824048}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!50 &3873710234435981399
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 5
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 1
+  m_SleepingMode: 1
+  m_CollisionDetection: 1
+  m_Constraints: 4
+--- !u!70 &6160693378261301275
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Size: {x: 0.9, y: 1.8}
+  m_Direction: 0
+--- !u!114 &4164782960512479183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03d74707032c02c40bacc20ea647f776, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerInputHandler
+  inputActions: {fileID: -944628639613478452, guid: 578bf35138a246e47882917081849bf3, type: 3}
+  actionMapName: Player
+  moveActionName: Move
+  jumpActionName: Jump
+  attackActionName: Attack
+  heavyAttackActionName: HeavyAttack
+  soulSwitchActionName: SoulSwitch
+  ultimateActionName: Ultimate
+  dodgeActionName: Dodge
+  deadZone: 0.2
+--- !u!114 &8308852143148964370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68e40257152a3ec43afd059d3f530810, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerController
+  input: {fileID: 4164782960512479183}
+  maxSpeed: 11.5
+  groundAcceleration: 135
+  groundDeceleration: 155
+  airAcceleration: 78
+  airDeceleration: 42
+  jumpVelocity: 17
+  maxAirJumps: 1
+  coyoteTime: 0.12
+  jumpBufferTime: 0.15
+  jumpCutMultiplier: 0.45
+  baseGravityScale: 5
+  fallGravityMultiplier: 1.8
+  lowJumpMultiplier: 3.2
+  maxFallSpeed: 26
+  apexHangVelocityThreshold: 1.35
+  apexGravityMultiplier: 0.42
+  apexHorizontalAccelerationMultiplier: 1.18
+  cornerCorrectionDistance: 0.18
+  cornerCheckDistance: 0.12
+  wallSlideSpeed: 3.5
+  wallJumpVelocity: {x: 10, y: 16}
+  wallJumpInputLockTime: 0.1
+  wallCoyoteTime: 0.09
+  dodgeSpeed: 18
+  dodgeDuration: 0.16
+  dodgeCooldown: 0.75
+  dodgeBufferTime: 0.12
+  dodgeInvincibilityDuration: 0.2
+  dodgeFxColor: {r: 0.42, g: 0.9, b: 1, a: 0.9}
+  crouchSpeedMultiplier: 0.4
+  crouchColliderHeightMultiplier: 0.55
+  crouchInputThreshold: 0.5
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  groundCheckOffset: {x: 0, y: -0.92}
+  groundCheckSize: {x: 0.7, y: 0.14}
+  wallCheckOffset: {x: 0.55, y: 0}
+  wallCheckSize: {x: 0.28, y: 1.2}
+  drawGizmos: 1
+--- !u!114 &6409895983483082473
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2670ec2410c79147aadc04ef60fd526, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Combat.Health
+  maxHealth: 5
+  vulnerableTo: 2
+  invincibilityDuration: 0.7
+--- !u!114 &1347767912384741384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b5c2f6989060384cab4e6fa687be5f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Combat.MeleeAttack
+  input: {fileID: 4164782960512479183}
+  originTransform: {fileID: 1724479662673075517}
+  damageType: 0
+  damage: 1
+  hitboxOffset: {x: 0.9, y: 0}
+  hitboxSize: {x: 1.4, y: 1.3}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 6144
+  cooldown: 0.35
+  impactDelay: 0.1667
+  attackBufferTime: 0.18
+  impactColor: {r: 1, g: 0.6, b: 0.25, a: 1}
+  showSlashTrail: 1
+  slashColor: {r: 1, g: 0.95, b: 0.82, a: 0.55}
+  heavyDamage: 2
+  heavyHitboxSize: {x: 1.7, y: 1.5}
+  heavyCooldown: 0.75
+  heavyImpactDelay: 0.1667
+  heavyImpactColor: {r: 1, g: 0.32, b: 0.08, a: 1}
+  heavySlashColor: {r: 1, g: 0.8, b: 0.5, a: 0.7}
+  drawGizmos: 1
+--- !u!114 &8459986277603932649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b3e602eb9c7b6f49837e203de8d8bf8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerDeathHandler
+  health: {fileID: 6409895983483082473}
+  controller: {fileID: 8308852143148964370}
+  input: {fileID: 4164782960512479183}
+  switchManager: {fileID: 0}
+  visual: {fileID: 2805527253332537475}
+  respawnDelay: 0.9
+  deathFadeDuration: 0.5
+--- !u!114 &7105433419720970967
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 955c859a6ab7dcd42b9923acce31ac50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerHitReaction
+  health: {fileID: 6409895983483082473}
+  controller: {fileID: 8308852143148964370}
+  animator: {fileID: 8483140839432853945}
+  knockbackHorizontalForce: 6
+  knockbackUpwardForce: 3
+  knockbackLockDuration: 0.16
+  hitSquashAmount: 0.32
+  heavyDamageThreshold: 2
+  heavyKnockbackHorizontalForce: 10
+  heavyKnockbackUpwardForce: 5
+  heavyKnockbackLockDuration: 0.24
+  heavyHitSquashAmount: 0.5
+--- !u!114 &5170160583731526920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418160934618577827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3c68943cb83ebc4e8d5c6b15588261e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SoulSplit.Runtime::SoulSplit.Player.NoHitKillRecovery
+  recoveryRatio: 0.2
+--- !u!1 &2986183700726114843
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4366313824285511660}
+  - component: {fileID: 4307774296239860534}
+  m_Layer: 0
+  m_Name: Lighting_PlayerGlow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4366313824285511660
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2986183700726114843}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3964660694778824048}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4307774296239860534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2986183700726114843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 073797afb82c5a1438f328866b10b3f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.Light2D
+  m_ComponentVersion: 4
+  m_LightType: 3
+  m_BlendStyleIndex: 0
+  m_Light2DProvider:
+    rid: -2
+  m_SelectionSources:
+    rid: 2222952493979795563
+  m_FalloffIntensity: 0.5
+  m_Color: {r: 0.85, g: 0.85, b: 0.8, a: 1}
+  m_Intensity: 1.1
+  m_LightVolumeIntensity: 1
+  m_LightVolumeEnabled: 0
+  m_ApplyToSortingLayers: 00000000
+  m_LightCookieSprite: {fileID: 0}
+  m_DeprecatedPointLightCookieSprite: {fileID: 0}
+  m_LightOrder: 0
+  m_AlphaBlendOnOverlap: 0
+  m_OverlapOperation: 0
+  m_NormalMapDistance: 3
+  m_NormalMapQuality: 2
+  m_UseNormalMap: 0
+  m_ShadowsEnabled: 1
+  m_ShadowIntensity: 0.75
+  m_ShadowSoftness: 0.3
+  m_ShadowSoftnessFalloffIntensity: 0.5
+  m_ShadowVolumeIntensityEnabled: 0
+  m_ShadowVolumeIntensity: 0.75
+  m_LocalBounds:
+    m_Center: {x: 0, y: -0.00000011920929, z: 0}
+    m_Extent: {x: 0.9985302, y: 0.99853027, z: 0}
+  m_PointLightInnerAngle: 360
+  m_PointLightOuterAngle: 360
+  m_PointLightInnerRadius: 0.8
+  m_PointLightOuterRadius: 4.5
+  m_ShapeLightParametricSides: 5
+  m_ShapeLightParametricAngleOffset: 0
+  m_ShapeLightParametricRadius: 1
+  m_ShapeLightFalloffSize: 0.5
+  m_ShapeLightFalloffOffset: {x: 0, y: 0}
+  m_ShapePath:
+  - {x: -0.5, y: -0.5, z: 0}
+  - {x: 0.5, y: -0.5, z: 0}
+  - {x: 0.5, y: 0.5, z: 0}
+  - {x: -0.5, y: 0.5, z: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2222952493979795563
+      type: {class: Light2DProviderSources, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data:
+        m_SelectedHashCode: 3
+        m_SelectedSource:
+          rid: -2
+        m_Provider2DCache:
+          rid: -2
+--- !u!1 &4557313894721197837
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3964660694778824048}
+  - component: {fileID: 2805527253332537475}
+  - component: {fileID: 3703993888578174088}
+  - component: {fileID: 8483140839432853945}
+  - component: {fileID: 5780934833178163241}
+  - component: {fileID: 362496508259063151}
+  - component: {fileID: 6318331233183651691}
+  - component: {fileID: 7805846229849013633}
+  - component: {fileID: 6611155515004133242}
+  m_Layer: 0
+  m_Name: Visual
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3964660694778824048
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4366313824285511660}
+  m_Father: {fileID: 1724479662673075517}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &2805527253332537475
+SpriteRenderer:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 10
+  m_MaskInteraction: 0
+  m_Sprite: {fileID: 21300000, guid: 57e03eb90c566a14685adbc1b8f3dfb8, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 1, y: 1}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
+--- !u!114 &3703993888578174088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20d07d60d515d7e45bd0d2b6fd3f7ba6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerVisual
+  controller: {fileID: 8308852143148964370}
+  spriteFacesLeft: 0
+--- !u!114 &8483140839432853945
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb2424ff1ab5eff499d8b22d7ae3c6ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerProceduralAnimator
+  controller: {fileID: 8308852143148964370}
+  meleeAttack: {fileID: 1347767912384741384}
+  walkThreshold: 0.45
+  walkStepRate: 2.6
+  walkBounce: 0.035
+  walkLean: 3
+  walkSway: 2.5
+  runStepRate: 4.6
+  runBounce: 0.085
+  runLean: 9
+  runSway: 5.5
+  footPlantSquash: 0.06
+  footPlantSharpness: 3
+  airStretch: 0.18
+  stretchResponse: 14
+  landSquash: 0.3
+  landSquashFullSpeed: 20
+  landRecoverySpeed: 9
+  launchPopDuration: 0.11
+  launchPopSquashPortion: 0.35
+  launchPopSquashAmount: -0.18
+  launchPopStretchAmount: 0.36
+  wallJumpPopMultiplier: 0.65
+  wallSlideTilt: 10
+  crouchSquashAmount: 0.32
+  crouchTransitionSpeed: 14
+  idleBreathAmount: 0.022
+  idleBreathFrequency: 2.2
+  tiltSpringStiffness: 260
+  tiltSpringDamping: 16
+  dustColor: {r: 0.55, g: 0.5, b: 0.42, a: 1}
+  runDustCooldown: 0.16
+  wallSlideDustInterval: 0.12
+  attackAnticipationDuration: 0.08
+  attackStrikeDuration: 0.045
+  attackHoldDuration: 0.09
+  attackRecoveryDuration: 0.15
+  attackWindupAngle: 18
+  attackSwingAngle: 42
+  attackLungeDistance: 0.27
+  heavyAttackAnticipationDuration: 0.16
+  heavyAttackStrikeDuration: 0.05
+  heavyAttackHoldDuration: 0.14
+  heavyAttackRecoveryDuration: 0.28
+  heavyAttackWindupAngle: 30
+  heavyAttackSwingAngle: 60
+  heavyAttackLungeDistance: 0.42
+--- !u!114 &5780934833178163241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad1b7903dc6f9784ba8aa1f2373e1481, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Combat.HitFlash
+  health: {fileID: 6409895983483082473}
+  spriteRenderer: {fileID: 2805527253332537475}
+  damagedColor: {r: 1, g: 1, b: 1, a: 1}
+  deflectedColor: {r: 0.45, g: 0.7, b: 1, a: 1}
+  damagedFlashDuration: 0.09
+  deflectedFlashDuration: 0.05
+  hitStopDuration: 0.035
+  deathHitStopDuration: 0.09
+  shakeMagnitude: 0.06
+  deathShakeMagnitude: 0.14
+  shakeDuration: 0.14
+  heavyDamageThreshold: 2
+  heavyHitStopDuration: 0.06
+  heavyShakeMagnitude: 0.1
+  heavyShakeDuration: 0.18
+--- !u!95 &362496508259063151
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 42c87d68eb87f0642b1e493d02c3cd85, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &6318331233183651691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3aeeef4ee7d1c4644a5ca81fe498e4c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerAnimatorBridge
+  controller: {fileID: 0}
+  meleeAttack: {fileID: 0}
+  health: {fileID: 0}
+  idleThreshold: 0.1
+  speedSmoothing: 14
+--- !u!114 &7805846229849013633
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff74a09a9a2d64a4c9b923cd84db478f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerFootstepFX
+  controller: {fileID: 0}
+  animator: {fileID: 0}
+  dustColor: {r: 0.55, g: 0.5, b: 0.42, a: 1}
+  feetOffsetY: 0
+  runDustSpeedThreshold: 0.45
+  runDustCooldown: 0.16
+  landFullSpeed: 16
+  landMinIntensity: 0.15
+  wallSlideDustInterval: 0.12
+--- !u!114 &6611155515004133242
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557313894721197837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0cf29715751809469003b0f0ee7de85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulSplit.Player.PlayerCrouchVisual
+  controller: {fileID: 0}
+  crouchScaleY: 0.5866667
+  transitionSpeed: 16
+  feetOffsetY: 0

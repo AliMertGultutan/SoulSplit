@@ -29,15 +29,15 @@ namespace SoulSplit.Player
 
         [Header("Yatay Hareket")]
         [Tooltip("Ulasilabilecek en yuksek kosma hizi (birim/saniye).")]
-        [SerializeField] private float maxSpeed = 9f;
+        [SerializeField] private float maxSpeed = 11.5f;
         [Tooltip("Yerde hedef hiza ulasma ivmesi. Yuksek deger = daha keskin baslangic.")]
-        [SerializeField] private float groundAcceleration = 90f;
+        [SerializeField] private float groundAcceleration = 135f;
         [Tooltip("Yerde durma yavaslamasi. Yuksek deger = daha keskin durus.")]
-        [SerializeField] private float groundDeceleration = 110f;
+        [SerializeField] private float groundDeceleration = 155f;
         [Tooltip("Havada ivmelenme. Yerdekinden dusuk olmali ki hava kontrolu daha agir hissettirsin.")]
-        [SerializeField] private float airAcceleration = 55f;
+        [SerializeField] private float airAcceleration = 78f;
         [Tooltip("Havada yavaslama. Cok yuksek olursa karakter havada anlik duruyormus gibi hissettirir.")]
-        [SerializeField] private float airDeceleration = 25f;
+        [SerializeField] private float airDeceleration = 42f;
 
         [Header("Ziplama")]
         [Tooltip("Ziplama aninda dikey hiza dogrudan yazilan deger.")]
@@ -61,6 +61,21 @@ namespace SoulSplit.Player
         [SerializeField] private float lowJumpMultiplier = 3.2f;
         [Tooltip("Maksimum dusme hizi (mutlak deger).")]
         [SerializeField] private float maxFallSpeed = 26f;
+
+        [Header("Apex Hang")]
+        [Tooltip("Dikey hiz bu degerin altindayken ziplamanin tepe noktasi yumusatilir.")]
+        [SerializeField] private float apexHangVelocityThreshold = 1.35f;
+        [Tooltip("Tepe noktasindaki yercekimi orani. Dusuk deger = daha okunabilir yon degistirme penceresi.")]
+        [Range(0.1f, 1f)]
+        [SerializeField] private float apexGravityMultiplier = 0.42f;
+        [Tooltip("Apex sirasinda yatay ivmeye verilen ek carpan.")]
+        [SerializeField] private float apexHorizontalAccelerationMultiplier = 1.18f;
+
+        [Header("Corner Correction")]
+        [Tooltip("Koseye kafa carpinca karakterin yana duzeltilebilecegi en fazla mesafe.")]
+        [SerializeField] private float cornerCorrectionDistance = 0.18f;
+        [Tooltip("Tavan kose kontrolunun yukari tarama mesafesi.")]
+        [SerializeField] private float cornerCheckDistance = 0.12f;
 
         [Header("Duvar Etkilesimi")]
         [Tooltip("Duvara yapisikken sabit dusme hizi.")]
@@ -139,6 +154,7 @@ namespace SoulSplit.Player
 
         // --- Update'te toplanip FixedUpdate'te tuketilen bayrak ---
         private bool _jumpCutRequested;
+        private Vector2 _previousPhysicsVelocity;
 
         /// <summary>Animasyon ve efekt sistemlerinin okuyabilecegi mevcut durum.</summary>
         public PlayerState State => _state;
@@ -249,14 +265,17 @@ namespace SoulSplit.Player
             if (HandleDodge())
             {
                 UpdateState();
+                _previousPhysicsVelocity = _rb.linearVelocity;
                 return;
             }
+            HandleCornerCorrection();
             HandleCrouch();
             HandleWallSlide();
             HandleHorizontalMovement();
             HandleJump();
             ApplyGravityFeel();
             UpdateState();
+            _previousPhysicsVelocity = _rb.linearVelocity;
         }
 
         /// <summary>
@@ -358,6 +377,9 @@ namespace SoulSplit.Player
             float rate = _isGrounded
                 ? (isAccelerating ? groundAcceleration : groundDeceleration)
                 : (isAccelerating ? airAcceleration : airDeceleration);
+
+            if (!_isGrounded && Mathf.Abs(_rb.linearVelocity.y) <= apexHangVelocityThreshold)
+                rate *= apexHorizontalAccelerationMultiplier;
 
             float newSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, rate * Time.fixedDeltaTime);
             _rb.linearVelocity = new Vector2(newSpeed, _rb.linearVelocity.y);
@@ -478,7 +500,11 @@ namespace SoulSplit.Player
                 return;
             }
 
-            if (_rb.linearVelocity.y < 0f)
+            if (!_isGrounded && input.JumpHeld && Mathf.Abs(_rb.linearVelocity.y) <= apexHangVelocityThreshold)
+            {
+                _rb.gravityScale = baseGravityScale * apexGravityMultiplier;
+            }
+            else if (_rb.linearVelocity.y < 0f)
             {
                 _rb.gravityScale = baseGravityScale * fallGravityMultiplier;
             }
@@ -496,6 +522,31 @@ namespace SoulSplit.Player
             {
                 _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, -maxFallSpeed);
             }
+        }
+
+        /// <summary>
+        /// Ziplamanin tepesinde bir tavan kosesine tek omuzla takilinca oyuncuyu
+        /// acik tarafa hafifce kaydirir ve yukari momentumunu korur.
+        /// </summary>
+        private void HandleCornerCorrection()
+        {
+            if (_capsule == null || _isGrounded || _previousPhysicsVelocity.y <= 0.1f ||
+                _rb.linearVelocity.y > 0.1f || cornerCorrectionDistance <= 0f)
+                return;
+
+            Bounds bounds = _capsule.bounds;
+            float inset = Mathf.Min(bounds.extents.x * 0.35f, 0.12f);
+            Vector2 leftOrigin = new Vector2(bounds.min.x + inset, bounds.max.y - 0.02f);
+            Vector2 rightOrigin = new Vector2(bounds.max.x - inset, bounds.max.y - 0.02f);
+            bool leftBlocked = Physics2D.Raycast(leftOrigin, Vector2.up, cornerCheckDistance, groundLayer);
+            bool rightBlocked = Physics2D.Raycast(rightOrigin, Vector2.up, cornerCheckDistance, groundLayer);
+
+            if (leftBlocked == rightBlocked) return;
+
+            float correction = leftBlocked ? cornerCorrectionDistance : -cornerCorrectionDistance;
+            Vector2 target = _rb.position + Vector2.right * correction;
+            _rb.position = target;
+            _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, _previousPhysicsVelocity.y);
         }
 
         /// <summary>Basit durum makinesi. Raporlama amacli; hareketi kendisi yonetmiyor.</summary>
@@ -525,6 +576,11 @@ namespace SoulSplit.Player
         private void OnValidate()
         {
             maxAirJumps = Mathf.Max(0, maxAirJumps);
+            maxSpeed = Mathf.Max(0.1f, maxSpeed);
+            apexHangVelocityThreshold = Mathf.Max(0f, apexHangVelocityThreshold);
+            apexHorizontalAccelerationMultiplier = Mathf.Max(1f, apexHorizontalAccelerationMultiplier);
+            cornerCorrectionDistance = Mathf.Max(0f, cornerCorrectionDistance);
+            cornerCheckDistance = Mathf.Max(0.01f, cornerCheckDistance);
             dodgeSpeed = Mathf.Max(0f, dodgeSpeed);
             dodgeDuration = Mathf.Max(0.01f, dodgeDuration);
             dodgeCooldown = Mathf.Max(dodgeDuration, dodgeCooldown);

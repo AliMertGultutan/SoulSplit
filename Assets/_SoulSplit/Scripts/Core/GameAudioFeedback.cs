@@ -6,9 +6,8 @@ using UnityEngine.SceneManagement;
 namespace SoulSplit.Core
 {
     /// <summary>
-    /// Prototipin temel eylemlerine kisa ses geri bildirimi ekler. Sesler dis
-    /// dosya kullanmadan calisma aninda uretilir; boylece proje tasinabilir ve
-    /// ucuncu taraf lisanslarindan bagimsiz kalir.
+    /// Prototipin temel eylemlerine ses geri bildirimi ekler. Hazir CC0 Kenney
+    /// klipleri Resources altindan yuklenir; dosya eksikse prosedurel yedek kullanilir.
     /// </summary>
     [RequireComponent(typeof(AudioSource))]
     public sealed class GameAudioFeedback : MonoBehaviour
@@ -34,6 +33,7 @@ namespace SoulSplit.Core
         private AudioClip _ultimateClip;
         private AudioClip _checkpointClip;
         private AudioClip _dodgeClip;
+        private AudioClip _healClip;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void RegisterBootstrap()
@@ -109,7 +109,9 @@ namespace SoulSplit.Core
             {
                 foreach (Health health in _healthPools)
                 {
-                    if (health != null) health.OnHit += HandleHit;
+                    if (health == null) continue;
+                    health.OnHit += HandleHit;
+                    health.OnHealed += HandleHealed;
                 }
             }
         }
@@ -142,7 +144,9 @@ namespace SoulSplit.Core
             {
                 foreach (Health health in _healthPools)
                 {
-                    if (health != null) health.OnHit -= HandleHit;
+                    if (health == null) continue;
+                    health.OnHit -= HandleHit;
+                    health.OnHealed -= HandleHealed;
                 }
             }
         }
@@ -188,6 +192,8 @@ namespace SoulSplit.Core
             Play(_checkpointClip, 0.48f);
         }
 
+        private void HandleHealed(int amount) => Play(_healClip, 0.52f);
+
         private void Play(AudioClip clip, float volume)
         {
             if (_source != null && clip != null) _source.PlayOneShot(clip, volume);
@@ -195,18 +201,24 @@ namespace SoulSplit.Core
 
         private void BuildClips()
         {
-            _jumpClip = CreateSweep("Jump", 0.13f, 260f, 430f, 0.05f, 0.25f, 11);
-            _wallJumpClip = CreateSweep("WallJump", 0.16f, 330f, 560f, 0.08f, 0.22f, 13);
-            _lightAttackClip = CreateSweep("LightAttack", 0.12f, 430f, 120f, 0.62f, 0.18f, 17);
-            _heavyAttackClip = CreateSweep("HeavyAttack", 0.22f, 210f, 62f, 0.48f, 0.34f, 19);
-            _hitClip = CreateSweep("Hit", 0.10f, 150f, 72f, 0.72f, 0.22f, 23);
-            _deflectClip = CreateSweep("Deflect", 0.14f, 980f, 620f, 0.12f, 0.18f, 29);
-            _deathClip = CreateSweep("Death", 0.38f, 180f, 42f, 0.32f, 0.45f, 31);
-            _soulOutClip = CreateSweep("SoulOut", 0.34f, 240f, 760f, 0.18f, 0.32f, 37);
-            _soulReturnClip = CreateSweep("SoulReturn", 0.28f, 690f, 210f, 0.16f, 0.30f, 41);
-            _ultimateClip = CreateSweep("SoulSurge", 0.62f, 180f, 1080f, 0.08f, 0.48f, 47);
-            _checkpointClip = CreateSweep("Checkpoint", 0.42f, 380f, 820f, 0.04f, 0.42f, 43);
-            _dodgeClip = CreateSweep("SoulStep", 0.16f, 720f, 210f, 0.20f, 0.24f, 53);
+            _jumpClip = LoadClip("SoulJump") ?? CreateSweep("Jump", 0.13f, 260f, 430f, 0.05f, 0.25f, 11);
+            _wallJumpClip = LoadClip("SoulWallJump") ?? CreateSweep("WallJump", 0.16f, 330f, 560f, 0.08f, 0.22f, 13);
+            _lightAttackClip = LoadClip("SoulLightAttack") ?? CreateSweep("LightAttack", 0.12f, 430f, 120f, 0.62f, 0.18f, 17);
+            _heavyAttackClip = LoadClip("SoulHeavyAttack") ?? CreateSweep("HeavyAttack", 0.22f, 210f, 62f, 0.48f, 0.34f, 19);
+            _hitClip = LoadClip("SoulHit") ?? CreateSweep("Hit", 0.10f, 150f, 72f, 0.72f, 0.22f, 23);
+            _deflectClip = LoadClip("SoulDeflect") ?? CreateSweep("Deflect", 0.14f, 980f, 620f, 0.12f, 0.18f, 29);
+            _deathClip = LoadClip("SoulDeath") ?? CreateSweep("Death", 0.38f, 180f, 42f, 0.32f, 0.45f, 31);
+            _soulOutClip = LoadClip("SoulOut") ?? CreateSweep("SoulOut", 0.34f, 240f, 760f, 0.18f, 0.32f, 37);
+            _soulReturnClip = LoadClip("SoulReturn") ?? CreateSweep("SoulReturn", 0.28f, 690f, 210f, 0.16f, 0.30f, 41);
+            _ultimateClip = LoadClip("SoulSurge") ?? CreateSweep("SoulSurge", 0.62f, 180f, 1080f, 0.08f, 0.48f, 47);
+            _checkpointClip = LoadClip("SoulCheckpoint") ?? CreateSweep("Checkpoint", 0.42f, 380f, 820f, 0.04f, 0.42f, 43);
+            _dodgeClip = LoadClip("SoulStep") ?? CreateSweep("SoulStep", 0.16f, 720f, 210f, 0.20f, 0.24f, 53);
+            _healClip = LoadClip("SoulRecovery") ?? CreateSweep("Recovery", 0.30f, 360f, 760f, 0.02f, 0.38f, 59);
+        }
+
+        private static AudioClip LoadClip(string clipName)
+        {
+            return Resources.Load<AudioClip>("SoulSplitAudio/" + clipName);
         }
 
         private static AudioClip CreateSweep(string name, float duration, float startFrequency,

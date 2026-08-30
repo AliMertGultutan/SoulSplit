@@ -78,6 +78,8 @@ namespace SoulSplit.Player
         [SerializeField, Range(0f, 0.25f)] private float comboChargeBonusPerStep = 0.08f;
 
         [Header("Ruhun Konumunda Bedenlesme")]
+        [Tooltip("Ruh formunda bedenlesme noktasi cizimini ac. Kapaliysa mavi oval/etiket olusturulmaz ve gereksiz fizik taramasi yapilmaz.")]
+        [SerializeField] private bool showMaterializationPreview = false;
         [Tooltip("Bedenlesme noktasini engelleyen katmanlar. Varsayilan: Ground.")]
         [SerializeField] private LayerMask materializationBlockingLayers = 1 << 8;
         [Tooltip("Ruh bir duvarin icindeyse en fazla bu yaricapta guvenli bosluk aranir.")]
@@ -185,8 +187,17 @@ namespace SoulSplit.Player
             SetCombatForm(soulActive: false);
             ApplyUltimateModifiers(false);
 
-            if (GetComponent<SoulMaterializationPreview>() == null)
-                gameObject.AddComponent<SoulMaterializationPreview>();
+            SoulMaterializationPreview preview = GetComponent<SoulMaterializationPreview>();
+            if (showMaterializationPreview)
+            {
+                if (preview == null) preview = gameObject.AddComponent<SoulMaterializationPreview>();
+                preview.enabled = true;
+            }
+            else if (preview != null)
+            {
+                // Varsayilan akis: mavi bedenlesme ovali ve fizik taramasi tamamen kapali.
+                preview.enabled = false;
+            }
         }
 
         private void OnEnable()

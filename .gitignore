@@ -49,6 +49,14 @@ Thumbs.db
 # Yerel ekran goruntuleri ve Unity kurtarma dosyalari
 /LocalCaptures/
 /Recovery/
+/Assets/_Recovery/
+/Assets/_Recovery.meta
+
+# Yalnizca secilmis aktif sesler Resources altinda tutulur; ham arsivler yereldir
+/Assets/_SoulSplit/Audio/KenneyImpact/
+/Assets/_SoulSplit/Audio/KenneyImpact.meta
+/Assets/_SoulSplit/Audio/KenneyRpg/
+/Assets/_SoulSplit/Audio/KenneyRpg.meta
 
 # Codex/yerel arac durumu
 /.codex/
