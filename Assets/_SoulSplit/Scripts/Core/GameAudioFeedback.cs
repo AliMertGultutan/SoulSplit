@@ -101,7 +101,7 @@ namespace SoulSplit.Core
             {
                 foreach (MeleeAttack attack in _attacks)
                 {
-                    if (attack != null) attack.OnAttackTriggered += HandleAttack;
+                    if (IsPlayerOwned(attack)) attack.OnAttackTriggered += HandleAttack;
                 }
             }
 
@@ -109,7 +109,7 @@ namespace SoulSplit.Core
             {
                 foreach (Health health in _healthPools)
                 {
-                    if (health == null) continue;
+                    if (!IsPlayerOwned(health)) continue;
                     health.OnHit += HandleHit;
                     health.OnHealed += HandleHealed;
                 }
@@ -136,7 +136,7 @@ namespace SoulSplit.Core
             {
                 foreach (MeleeAttack attack in _attacks)
                 {
-                    if (attack != null) attack.OnAttackTriggered -= HandleAttack;
+                    if (IsPlayerOwned(attack)) attack.OnAttackTriggered -= HandleAttack;
                 }
             }
 
@@ -144,7 +144,7 @@ namespace SoulSplit.Core
             {
                 foreach (Health health in _healthPools)
                 {
-                    if (health == null) continue;
+                    if (!IsPlayerOwned(health)) continue;
                     health.OnHit -= HandleHit;
                     health.OnHealed -= HandleHealed;
                 }
@@ -193,6 +193,13 @@ namespace SoulSplit.Core
         }
 
         private void HandleHealed(int amount) => Play(_healClip, 0.52f);
+
+        private static bool IsPlayerOwned(Component component)
+        {
+            return component != null &&
+                   (component.GetComponentInParent<PlayerController>() != null ||
+                    component.GetComponentInParent<SoulController>() != null);
+        }
 
         private void Play(AudioClip clip, float volume)
         {

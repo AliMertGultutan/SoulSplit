@@ -119,6 +119,7 @@ namespace SoulSplit.Enemies
         private bool _attackLanded;
         private float _activeAttackWindup;
         private GameObject _attackWarning;
+        private TextMesh _attackWarningText;
         private readonly Collider2D[] _hitResults = new Collider2D[8];
         private readonly HashSet<Health> _damagedThisAttack = new HashSet<Health>();
         private ContactFilter2D _attackFilter;
@@ -153,6 +154,7 @@ namespace SoulSplit.Enemies
 
             RefreshAttackFilter();
             BuildAttackWarning();
+            if (GetComponent<EnemyAudioFeedback>() == null) gameObject.AddComponent<EnemyAudioFeedback>();
         }
 
         protected virtual void OnEnable()
@@ -172,8 +174,16 @@ namespace SoulSplit.Enemies
 
             if (IsAttackWarningVisible)
             {
-                float pulse = 1f + Mathf.Sin(Time.unscaledTime * 18f) * 0.12f;
-                _attackWarning.transform.localScale = Vector3.one * pulse;
+                bool imminent = _state == EnemyState.Attack && !_attackLanded && _stateTimer <= 0.25f;
+                if (_attackWarningText != null)
+                    _attackWarningText.color = imminent
+                        ? new Color(1f, 0.08f, 0.04f, 1f)
+                        : new Color(1f, 0.78f, 0.08f, 1f);
+
+                float scale = imminent
+                    ? 1.55f + Mathf.Sin(Time.unscaledTime * 28f) * 0.22f
+                    : 1.35f + Mathf.Sin(Time.unscaledTime * 7f) * 0.04f;
+                _attackWarning.transform.localScale = Vector3.one * scale;
             }
 
             _stateTimer -= Time.deltaTime;
@@ -292,14 +302,13 @@ namespace SoulSplit.Enemies
             }
             OnAttackStarted();
             OnAttackTriggered?.Invoke(_currentTier);
-            SetAttackWarning(_stateTimer <= attackWarningLeadTime + 0.001f);
+            // Dusman saldiriya karar verir vermez buyuk sari unlem gorunur.
+            // Son 0.25 saniyede Update'te kirmizi ve titreşimli hale gelir.
+            SetAttackWarning(true);
         }
 
         private void TickAttack()
         {
-            if (!_attackLanded && _stateTimer <= attackWarningLeadTime)
-                SetAttackWarning(true);
-
             // Windup bittigi anda tek kare hitbox ac.
             if (!_attackLanded && _stateTimer <= 0f)
             {
@@ -395,18 +404,18 @@ namespace SoulSplit.Enemies
                 float localTop = transform.InverseTransformPoint(sprite.bounds.max).y;
                 top = Mathf.Max(top, localTop + 0.35f);
             }
-            _attackWarning.transform.localPosition = new Vector3(0f, top, 0f);
+            _attackWarning.transform.localPosition = new Vector3(0f, top + 0.18f, 0f);
 
-            TextMesh text = _attackWarning.AddComponent<TextMesh>();
-            text.text = "!";
-            text.anchor = TextAnchor.MiddleCenter;
-            text.alignment = TextAlignment.Center;
-            text.fontSize = 72;
-            text.characterSize = 0.045f;
-            text.fontStyle = FontStyle.Bold;
-            text.color = new Color(1f, 0.28f, 0.08f, 1f);
+            _attackWarningText = _attackWarning.AddComponent<TextMesh>();
+            _attackWarningText.text = "!";
+            _attackWarningText.anchor = TextAnchor.MiddleCenter;
+            _attackWarningText.alignment = TextAlignment.Center;
+            _attackWarningText.fontSize = 150;
+            _attackWarningText.characterSize = 0.085f;
+            _attackWarningText.fontStyle = FontStyle.Bold;
+            _attackWarningText.color = new Color(1f, 0.78f, 0.08f, 1f);
 
-            MeshRenderer renderer = text.GetComponent<MeshRenderer>();
+            MeshRenderer renderer = _attackWarningText.GetComponent<MeshRenderer>();
             if (renderer != null) renderer.sortingOrder = 90;
             SetAttackWarning(false);
         }
@@ -415,7 +424,7 @@ namespace SoulSplit.Enemies
         {
             if (_attackWarning == null) return;
             _attackWarning.SetActive(visible);
-            if (visible) _attackWarning.transform.localScale = Vector3.one;
+            if (visible) _attackWarning.transform.localScale = Vector3.one * 1.35f;
         }
 
         private void HandleDeath()
