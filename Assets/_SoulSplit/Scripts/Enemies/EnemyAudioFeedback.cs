@@ -30,9 +30,12 @@ namespace SoulSplit.Enemies
 
             bool ghost = GetComponent<GhostEnemy>() != null;
             float baseFrequency = ghost ? 300f : 150f;
-            _attack = MakeClip("EnemyAttack", 0.20f, baseFrequency * 1.6f, baseFrequency * 0.62f, 0.44f, 71);
-            _hurt = MakeClip("EnemyHurt", 0.13f, baseFrequency * 1.9f, baseFrequency * 0.9f, 0.48f, 73);
-            _death = MakeClip("EnemyDeath", 0.34f, baseFrequency * 1.1f, baseFrequency * 0.28f, 0.38f, 79);
+            _attack = LoadClip(ghost ? "impactMetal_heavy_001" : "chop") ??
+                      MakeClip("EnemyAttack", 0.20f, baseFrequency * 1.6f, baseFrequency * 0.62f, 0.44f, 71);
+            _hurt = LoadClip("impactSoft_medium_003") ??
+                    MakeClip("EnemyHurt", 0.13f, baseFrequency * 1.9f, baseFrequency * 0.9f, 0.48f, 73);
+            _death = LoadClip("impactWood_heavy_001") ??
+                     MakeClip("EnemyDeath", 0.34f, baseFrequency * 1.1f, baseFrequency * 0.28f, 0.38f, 79);
         }
 
         private void OnEnable()
@@ -67,6 +70,11 @@ namespace SoulSplit.Enemies
         private void Play(AudioClip clip, float volume)
         {
             if (_source != null && clip != null) _source.PlayOneShot(clip, volume);
+        }
+
+        private static AudioClip LoadClip(string clipName)
+        {
+            return Resources.Load<AudioClip>("SoulSplitAudio/" + clipName);
         }
 
         private static AudioClip MakeClip(string name, float duration, float startFrequency,
