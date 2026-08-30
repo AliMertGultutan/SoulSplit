@@ -12,8 +12,6 @@ namespace SoulSplit.Enemies
         private EnemyBase _enemy;
         private Health _health;
         private AudioSource _source;
-        private float _nextPatrolSound;
-        private AudioClip _patrol;
         private AudioClip _attack;
         private AudioClip _hurt;
         private AudioClip _death;
@@ -32,7 +30,6 @@ namespace SoulSplit.Enemies
 
             bool ghost = GetComponent<GhostEnemy>() != null;
             float baseFrequency = ghost ? 300f : 150f;
-            _patrol = MakeClip("EnemyPatrol", 0.18f, baseFrequency, baseFrequency * 0.8f, 0.22f, 67);
             _attack = MakeClip("EnemyAttack", 0.20f, baseFrequency * 1.6f, baseFrequency * 0.62f, 0.44f, 71);
             _hurt = MakeClip("EnemyHurt", 0.13f, baseFrequency * 1.9f, baseFrequency * 0.9f, 0.48f, 73);
             _death = MakeClip("EnemyDeath", 0.34f, baseFrequency * 1.1f, baseFrequency * 0.28f, 0.38f, 79);
@@ -55,17 +52,6 @@ namespace SoulSplit.Enemies
             {
                 _health.OnHit -= HandleHit;
                 _health.OnDeath -= HandleDeath;
-            }
-        }
-
-        private void Update()
-        {
-            if (_enemy == null || _health == null || _health.IsDead) return;
-            bool moving = _enemy.State == EnemyState.Patrol || _enemy.State == EnemyState.Chase;
-            if (moving && _enemy.Velocity.sqrMagnitude > 0.18f && Time.time >= _nextPatrolSound)
-            {
-                Play(_patrol, 0.20f);
-                _nextPatrolSound = Time.time + Random.Range(1.8f, 3.5f);
             }
         }
 
