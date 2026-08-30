@@ -209,6 +209,23 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
+        public IEnumerator WinTrigger_RequiresEveryEnemyToBeDead()
+        {
+            EnemyBase[] enemies = Object.FindObjectsByType<EnemyBase>(FindObjectsInactive.Include);
+            Assert.That(enemies.Length, Is.GreaterThan(0));
+            Assert.That(WinTrigger.AllEnemiesDefeated(), Is.False);
+
+            foreach (EnemyBase enemy in enemies)
+            {
+                Health health = enemy.GetComponent<Health>();
+                if (health != null) health.Kill();
+            }
+
+            Assert.That(WinTrigger.AllEnemiesDefeated(), Is.True);
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ConsecutiveHits_BuildFlowAndIncreaseSoulSurgeReward()
         {
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();

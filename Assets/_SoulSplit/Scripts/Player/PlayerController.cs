@@ -151,6 +151,9 @@ namespace SoulSplit.Player
         private float _dodgeBufferCounter;
         private float _dodgeTimer;
         private float _dodgeCooldownCounter;
+        private bool _bodyEnemyCollisionIgnored;
+        private bool _bodyGhostCollisionIgnored;
+        private bool _dodgeCollisionIgnoreActive;
 
         // --- Update'te toplanip FixedUpdate'te tuketilen bayrak ---
         private bool _jumpCutRequested;
@@ -222,6 +225,7 @@ namespace SoulSplit.Player
             if (_rb != null && _isDodging) _rb.gravityScale = baseGravityScale;
             _isDodging = false;
             _dodgeBufferCounter = 0f;
+            EndDodgeCollisionIgnore();
             SetCrouching(false, force: true);
         }
 
@@ -449,6 +453,7 @@ namespace SoulSplit.Player
                 {
                     _isDodging = false;
                     _rb.gravityScale = baseGravityScale;
+                    EndDodgeCollisionIgnore();
                     return false;
                 }
 
@@ -468,6 +473,7 @@ namespace SoulSplit.Player
                 : _facingDirection;
             _facingDirection = _dodgeDirection;
             _isDodging = true;
+            BeginDodgeCollisionIgnore();
             // Takla boyunca fiziksel profil de kuculur; sadece sprite donmez,
             // oyuncu gercekten alcak platformlarin altindan gecebilir.
             SetCrouching(true);
@@ -480,6 +486,40 @@ namespace SoulSplit.Player
                 65f, new Vector2(-_dodgeDirection, 0.25f), 0f);
             OnDodged?.Invoke();
             return true;
+        }
+
+        private void BeginDodgeCollisionIgnore()
+        {
+            if (_dodgeCollisionIgnoreActive) return;
+            _dodgeCollisionIgnoreActive = true;
+            int bodyLayer = gameObject.layer;
+            int physicalEnemyLayer = LayerMask.NameToLayer("PhysicalEnemy");
+            int ghostEnemyLayer = LayerMask.NameToLayer("GhostEnemy");
+
+            if (physicalEnemyLayer >= 0)
+            {
+                _bodyEnemyCollisionIgnored = Physics2D.GetIgnoreLayerCollision(bodyLayer, physicalEnemyLayer);
+                Physics2D.IgnoreLayerCollision(bodyLayer, physicalEnemyLayer, true);
+            }
+            if (ghostEnemyLayer >= 0)
+            {
+                _bodyGhostCollisionIgnored = Physics2D.GetIgnoreLayerCollision(bodyLayer, ghostEnemyLayer);
+                Physics2D.IgnoreLayerCollision(bodyLayer, ghostEnemyLayer, true);
+            }
+        }
+
+        private void EndDodgeCollisionIgnore()
+        {
+            if (!_dodgeCollisionIgnoreActive) return;
+            _dodgeCollisionIgnoreActive = false;
+            int bodyLayer = gameObject.layer;
+            int physicalEnemyLayer = LayerMask.NameToLayer("PhysicalEnemy");
+            int ghostEnemyLayer = LayerMask.NameToLayer("GhostEnemy");
+
+            if (physicalEnemyLayer >= 0)
+                Physics2D.IgnoreLayerCollision(bodyLayer, physicalEnemyLayer, _bodyEnemyCollisionIgnored);
+            if (ghostEnemyLayer >= 0)
+                Physics2D.IgnoreLayerCollision(bodyLayer, ghostEnemyLayer, _bodyGhostCollisionIgnored);
         }
 
         /// <summary>Ziplama onceligi: duvar ziplamasi > yer/coyote ziplamasi > hava ziplamasi.</summary>
