@@ -51,9 +51,9 @@ namespace SoulSplit.Tests
 
             Assert.That(GameplaySettings.MasterVolume, Is.EqualTo(0.8f).Within(0.001f));
             Assert.That(GameplaySettings.CameraEffectsIntensity, Is.EqualTo(1f).Within(0.001f));
-            Assert.That(GameplaySettings.HitStopEnabled, Is.True);
+            Assert.That(GameplaySettings.HitStopEnabled, Is.False);
             Assert.That(GameplaySettings.ContextualHintsEnabled, Is.True);
-            Assert.That(GameplaySettings.MaterializeAtSoulPosition, Is.True);
+            Assert.That(GameplaySettings.MaterializeAtSoulPosition, Is.False);
             Assert.That(GameplaySettings.Fullscreen, Is.True);
         }
 

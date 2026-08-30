@@ -49,10 +49,9 @@ namespace SoulSplit.Player
             _refreshTimer -= Time.unscaledDeltaTime;
             // Beden yercekimiyle hareket edebilir; "yerinde kal" ayarinda
             // ucuz olan beden takibini kare kare yaparak isareti kaydirmayiz.
-            if (!GameplaySettings.MaterializeAtSoulPosition || _refreshTimer <= 0f)
+            if (_refreshTimer <= 0f)
             {
-                // Hizli fizik akisi sirasinda onizleme bedenden kopmasin.
-                _refreshTimer = GameplaySettings.MaterializeAtSoulPosition ? RefreshInterval : 0f;
+                _refreshTimer = RefreshInterval;
                 RefreshPreview();
             }
 

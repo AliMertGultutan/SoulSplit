@@ -290,7 +290,7 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
-        public IEnumerator ManualSoulReturn_MaterializesBodyAtSoulPosition()
+        public IEnumerator ManualSoulReturn_AlwaysKeepsBodyAtOriginalPosition()
         {
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
             GameObject body = GameObject.Find("Player");
@@ -304,6 +304,7 @@ namespace SoulSplit.Tests
             Assert.That(separate, Is.Not.Null);
             Assert.That(returnToBody, Is.Not.Null);
 
+            Vector2 originalPosition = body.transform.position;
             separate.Invoke(manager, null);
             yield return null;
 
@@ -315,18 +316,16 @@ namespace SoulSplit.Tests
             returnToBody.Invoke(manager, new object[] { false, true });
             yield return new WaitForFixedUpdate();
 
-            Assert.That(Vector2.Distance(body.transform.position, destination), Is.LessThan(0.05f));
+            Assert.That(Mathf.Abs(body.transform.position.x - originalPosition.x), Is.LessThan(0.05f));
+            Assert.That(Vector2.Distance(body.transform.position, destination), Is.GreaterThan(1f));
             Assert.That(manager.IsSoulActive, Is.False);
         }
 
         [UnityTest]
-        public IEnumerator SoulForm_ShowsMaterializationPreviewWithTextStatus()
+        public IEnumerator SoulForm_DoesNotShowMaterializationPreview()
         {
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
             Assert.That(manager, Is.Not.Null);
-            Assert.That(manager.GetComponent<SoulMaterializationPreview>(), Is.Not.Null,
-                "Bedenlesme onizlemesi oyun baslarken otomatik kurulmalidir.");
-
             MethodInfo separate = typeof(SoulSwitchManager).GetMethod(
                 "SeparateSoul", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(separate, Is.Not.Null);
@@ -334,32 +333,21 @@ namespace SoulSplit.Tests
             yield return null;
 
             SoulMaterializationPreview preview = manager.GetComponent<SoulMaterializationPreview>();
-            Assert.That(preview.IsVisible, Is.True);
-            Assert.That(preview.IsSafe, Is.True);
-            Assert.That(preview.StatusText, Does.Contain("BEDENLEŞME"));
+            Assert.That(preview == null || !preview.IsVisible, Is.True,
+                "Ruh formunda mavi bedenlesme ovali gosterilmemelidir.");
         }
 
         [UnityTest]
-        public IEnumerator MaterializationSettingOff_PreviewTracksBody()
+        public IEnumerator MaterializationPreference_CannotBeEnabled()
         {
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
             GameObject body = GameObject.Find("Player");
             Assert.That(manager, Is.Not.Null);
             Assert.That(body, Is.Not.Null);
 
-            MethodInfo separate = typeof(SoulSwitchManager).GetMethod(
-                "SeparateSoul", BindingFlags.Instance | BindingFlags.NonPublic);
-            separate.Invoke(manager, null);
+            GameplaySettings.MaterializeAtSoulPosition = true;
+            Assert.That(GameplaySettings.MaterializeAtSoulPosition, Is.False);
             yield return null;
-
-            GameplaySettings.MaterializeAtSoulPosition = false;
-            yield return new WaitForSecondsRealtime(0.1f);
-
-            SoulMaterializationPreview preview = manager.GetComponent<SoulMaterializationPreview>();
-            Assert.That(preview.IsVisible, Is.True);
-            Assert.That(preview.StatusText, Does.Contain("BEDEN BURADA"));
-            Assert.That(Vector2.Distance(preview.PreviewPosition, body.transform.position), Is.LessThan(0.12f),
-                "Ayar kapaliyken onizleme, yercekimiyle oturmus olsa da bedenin guncel konumunu izlemelidir.");
         }
 
         [UnityTest]
@@ -384,7 +372,7 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
-        public IEnumerator PlayerCanKeepBodyAtOriginalPositionFromPauseMenuSetting()
+        public IEnumerator Settings_DoNotOfferHitStopOrSoulTeleportOptions()
         {
             PauseMenuUI pauseMenu = Object.FindAnyObjectByType<PauseMenuUI>();
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
@@ -398,12 +386,12 @@ namespace SoulSplit.Tests
             SettingsPanelUI settingsPanel = Object.FindAnyObjectByType<SettingsPanelUI>();
             Assert.That(settingsPanel, Is.Not.Null);
             Assert.That(settingsPanel.IsOpen, Is.True);
-            Toggle toggle = GameObject.Find("MaterializeAtSoulToggle")?.GetComponent<Toggle>();
-            Assert.That(toggle, Is.Not.Null);
-            toggle.isOn = false;
+            Assert.That(GameObject.Find("MaterializeAtSoulToggle"), Is.Null);
+            Assert.That(GameObject.Find("HitStopToggle"), Is.Null);
             settingsPanel.Close();
             pauseMenu.Close();
             Assert.That(GameplaySettings.MaterializeAtSoulPosition, Is.False);
+            Assert.That(GameplaySettings.HitStopEnabled, Is.False);
 
             MethodInfo separate = typeof(SoulSwitchManager).GetMethod(
                 "SeparateSoul", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -424,7 +412,7 @@ namespace SoulSplit.Tests
         }
 
         [UnityTest]
-        public IEnumerator SoulReturn_InsidePlatformFindsNearbyClearPosition()
+        public IEnumerator SoulReturn_IgnoresBlockedSoulPositionAndKeepsBodySafe()
         {
             SoulSwitchManager manager = Object.FindAnyObjectByType<SoulSwitchManager>();
             GameObject body = GameObject.Find("Player");
@@ -437,6 +425,7 @@ namespace SoulSplit.Tests
                 "SeparateSoul", BindingFlags.Instance | BindingFlags.NonPublic);
             MethodInfo returnToBody = typeof(SoulSwitchManager).GetMethod(
                 "ReturnToBody", BindingFlags.Instance | BindingFlags.NonPublic);
+            Vector2 originalPosition = body.transform.position;
             separate.Invoke(manager, null);
             yield return null;
 
@@ -451,9 +440,56 @@ namespace SoulSplit.Tests
                 (Vector2)body.transform.position + capsule.offset,
                 capsule.size, capsule.direction, 0f, 1 << 8);
 
-            Assert.That(Vector2.Distance(body.transform.position, blockedDestination), Is.LessThanOrEqualTo(2.6f));
+            Assert.That(Mathf.Abs(body.transform.position.x - originalPosition.x), Is.LessThan(0.05f));
+            Assert.That(Vector2.Distance(body.transform.position, blockedDestination), Is.GreaterThan(1f));
             Assert.That(overlaps.Any(hit => hit != null && !hit.isTrigger), Is.False,
-                "Beden ruhun yakininda fakat platform collider'inin disinda olmalidir.");
+                "Beden birakildigi guvenli konumda kalmalidir.");
+        }
+
+        [UnityTest]
+        public IEnumerator EnemyAttack_ShowsWarningAndIsNotCancelledByPlayerHit()
+        {
+            EnemyBase enemy = GameObject.Find("PhysicalEnemy_Guardian")?.GetComponent<EnemyBase>();
+            Assert.That(enemy, Is.Not.Null);
+            Health health = enemy.GetComponent<Health>();
+            health.ResetHealth();
+
+            MethodInfo beginAttack = typeof(EnemyBase).GetMethod(
+                "BeginAttack", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(beginAttack, Is.Not.Null);
+            beginAttack.Invoke(enemy, null);
+
+            Assert.That(enemy.State, Is.EqualTo(EnemyState.Attack));
+            float waitUntilWarning = Mathf.Max(0f, enemy.AttackWindupDuration - 0.5f) + 0.02f;
+            if (waitUntilWarning > 0f) yield return new WaitForSeconds(waitUntilWarning);
+            Assert.That(enemy.IsAttackWarningVisible, Is.True);
+
+            DamageType type = health.VulnerableTo == DamageRealm.Spiritual
+                ? DamageType.Spiritual
+                : DamageType.Physical;
+            health.TryTakeDamage(1, type, Vector2.right);
+            yield return null;
+
+            Assert.That(enemy.State, Is.EqualTo(EnemyState.Attack),
+                "Oyuncu vurusu dusmanin hazirladigi saldiriyi iptal etmemelidir.");
+            Assert.That(enemy.IsAttackWarningVisible, Is.True);
+
+            yield return new WaitForSeconds(0.52f);
+            Assert.That(enemy.IsAttackWarningVisible, Is.False,
+                "Unlem hasar karesinde kaybolmalidir.");
+        }
+
+        [UnityTest]
+        public IEnumerator MainKillZone_CoversStartingAreaAndMostOfLevel()
+        {
+            GameObject killZone = GameObject.Find("KillZone_Chasm");
+            Assert.That(killZone, Is.Not.Null);
+            BoxCollider2D box = killZone.GetComponent<BoxCollider2D>();
+            Assert.That(box, Is.Not.Null);
+            Assert.That(box.bounds.min.x, Is.LessThan(-10f));
+            Assert.That(box.bounds.max.x, Is.GreaterThan(200f));
+            Assert.That(box.bounds.max.y, Is.LessThan(-5f));
+            yield return null;
         }
 
         [UnityTest]

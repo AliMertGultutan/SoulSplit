@@ -393,7 +393,7 @@ namespace SoulSplit.Player
         {
             if (!input.SoulSwitchPressedThisFrame) return;
 
-            if (IsSoulActive) ReturnToBody(forced: false, materializeAtSoul: true);
+            if (IsSoulActive) ReturnToBody(forced: false, materializeAtSoul: false);
             else if (CanSeparate) SeparateSoul();
         }
 
@@ -433,9 +433,8 @@ namespace SoulSplit.Player
         {
             IsSoulActive = false;
 
-            Vector2 soulPosition = soul.transform.position;
-            bool didMaterialize = materializeAtSoul && GameplaySettings.MaterializeAtSoulPosition &&
-                                  TryMaterializeBody(soulPosition);
+            // Ruh nerede olursa olsun oyuncu daima biraktigi fiziksel bedene doner.
+            bool didMaterialize = false;
 
             soul.enabled = false;
             soulObject.SetActive(false);
@@ -524,20 +523,12 @@ namespace SoulSplit.Player
         public bool TryGetMaterializationPreview(out Vector2 position, out bool isSafe,
             out bool remainsAtBody)
         {
-            remainsAtBody = !GameplaySettings.MaterializeAtSoulPosition;
+            remainsAtBody = true;
             isSafe = false;
             position = body != null ? (Vector2)body.transform.position : Vector2.zero;
             if (!IsSoulActive || body == null || soul == null) return false;
 
-            if (remainsAtBody)
-            {
-                isSafe = true;
-                return true;
-            }
-
-            Vector2 desiredPosition = soul.transform.position;
-            isSafe = TryFindSafeMaterializationPosition(desiredPosition, out Vector2 safePosition);
-            position = isSafe ? safePosition : desiredPosition;
+            isSafe = true;
             return true;
         }
 

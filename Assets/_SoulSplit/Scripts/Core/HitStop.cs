@@ -33,8 +33,8 @@ namespace SoulSplit.Core
         /// <summary>Kisa bir donma tetikler. Ust uste cagrilirsa en uzun sure kazanir.</summary>
         public static void Trigger(float duration)
         {
-            if (_instance == null || duration <= 0f || !GameplaySettings.HitStopEnabled) return;
-            _instance.TriggerInternal(duration);
+            // Vuruslar dusman saldirilarinin zamanini dondurmasin.
+            TimeScaleController.ClearHitStop();
         }
 
         private void TriggerInternal(float duration)

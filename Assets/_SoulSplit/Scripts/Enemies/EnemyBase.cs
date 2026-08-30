@@ -47,6 +47,8 @@ namespace SoulSplit.Enemies
         [Tooltip("Vurustan once bekleme. Oyuncuya kacma firsati verir; 0 yapma.")]
         [SerializeField] protected float attackWindup = 0.35f;
         [SerializeField] protected float attackCooldown = 1.2f;
+        [Tooltip("Hasardan tam bu kadar once dusmanin ustunde ! gorunur.")]
+        [SerializeField, Min(0.1f)] protected float attackWarningLeadTime = 0.5f;
         [SerializeField] protected Vector2 attackHitboxSize = new Vector2(1.6f, 1.4f);
         [Tooltip("Bu dusmanin vurabilecegi katmanlar (bedene mi ruha mi vuruyor).")]
         [SerializeField] protected LayerMask attackTargetLayers;
@@ -115,6 +117,8 @@ namespace SoulSplit.Enemies
         private float _stateTimer;
         private float _nextAttackTime;
         private bool _attackLanded;
+        private float _activeAttackWindup;
+        private GameObject _attackWarning;
         private readonly Collider2D[] _hitResults = new Collider2D[8];
         private readonly HashSet<Health> _damagedThisAttack = new HashSet<Health>();
         private ContactFilter2D _attackFilter;
@@ -124,7 +128,8 @@ namespace SoulSplit.Enemies
         /// <summary>Anlik hiz. Yurume animasyonu bunu okuyor.</summary>
         public Vector2 Velocity => _rb != null ? _rb.linearVelocity : Vector2.zero;
         /// <summary>Vurus oncesi hazirlik suresi. Saldiri animasyonu buna gore zamanlanir.</summary>
-        public float AttackWindupDuration => attackWindup;
+        public float AttackWindupDuration => _activeAttackWindup > 0f ? _activeAttackWindup : attackWindup;
+        public bool IsAttackWarningVisible => _attackWarning != null && _attackWarning.activeSelf;
 
         /// <summary>
         /// Saldiri baslarken tetiklenir; hangi kademe oldugunu tasir.
@@ -147,23 +152,29 @@ namespace SoulSplit.Enemies
             _spawnPosition = transform.position;
 
             RefreshAttackFilter();
+            BuildAttackWarning();
         }
 
         protected virtual void OnEnable()
         {
-            _health.OnHit += HandleHit;
             _health.OnDeath += HandleDeath;
         }
 
         protected virtual void OnDisable()
         {
-            _health.OnHit -= HandleHit;
             _health.OnDeath -= HandleDeath;
+            SetAttackWarning(false);
         }
 
         protected virtual void Update()
         {
             if (_state == EnemyState.Dead) return;
+
+            if (IsAttackWarningVisible)
+            {
+                float pulse = 1f + Mathf.Sin(Time.unscaledTime * 18f) * 0.12f;
+                _attackWarning.transform.localScale = Vector3.one * pulse;
+            }
 
             _stateTimer -= Time.deltaTime;
 
@@ -269,7 +280,9 @@ namespace SoulSplit.Enemies
             bool heavy = _currentTier == AttackTier.Heavy;
 
             _state = EnemyState.Attack;
-            _stateTimer = heavy ? heavyAttackWindup : attackWindup;
+            _activeAttackWindup = Mathf.Max(attackWarningLeadTime,
+                heavy ? heavyAttackWindup : attackWindup);
+            _stateTimer = _activeAttackWindup;
             _attackLanded = false;
             _nextAttackTime = Time.time + (heavy ? heavyAttackCooldown : attackCooldown);
 
@@ -279,14 +292,19 @@ namespace SoulSplit.Enemies
             }
             OnAttackStarted();
             OnAttackTriggered?.Invoke(_currentTier);
+            SetAttackWarning(_stateTimer <= attackWarningLeadTime + 0.001f);
         }
 
         private void TickAttack()
         {
+            if (!_attackLanded && _stateTimer <= attackWarningLeadTime)
+                SetAttackWarning(true);
+
             // Windup bittigi anda tek kare hitbox ac.
             if (!_attackLanded && _stateTimer <= 0f)
             {
                 _attackLanded = true;
+                SetAttackWarning(false);
                 ApplyAttackDamage();
                 _stateTimer = 0.2f;   // toparlanma
             }
@@ -365,27 +383,45 @@ namespace SoulSplit.Enemies
             };
         }
 
-        private void HandleHit(HitResult result, DamageType type, Vector2 hitDirection, int amount)
+        private void BuildAttackWarning()
         {
-            if (result != HitResult.Damaged) return;
+            _attackWarning = new GameObject("AttackWarning_Exclamation");
+            _attackWarning.transform.SetParent(transform, false);
 
-            bool isHeavy = amount >= heavyDamageThreshold;
-            _state = EnemyState.Hurt;
-            _stateTimer = isHeavy ? hurtDuration * heavyHurtDurationMultiplier : hurtDuration;
+            float top = 1.35f;
+            SpriteRenderer[] sprites = GetComponentsInChildren<SpriteRenderer>();
+            foreach (SpriteRenderer sprite in sprites)
+            {
+                float localTop = transform.InverseTransformPoint(sprite.bounds.max).y;
+                top = Mathf.Max(top, localTop + 0.35f);
+            }
+            _attackWarning.transform.localPosition = new Vector3(0f, top, 0f);
 
-            // hitDirection zaten saldirgandan hedefe (bu dusmana) dogru, yani
-            // dusmanin savrulmasi gereken yonle ayni. Bilinmiyorsa (sifir
-            // vektor) bakis yonunun tersini kullan.
-            Vector2 away = hitDirection.sqrMagnitude > 0.0001f
-                ? hitDirection
-                : new Vector2(-_facing, 0f);
-            float force = isHeavy ? knockbackForce * heavyKnockbackMultiplier : knockbackForce;
-            _rb.linearVelocity = new Vector2(away.x * force, _rb.linearVelocity.y);
+            TextMesh text = _attackWarning.AddComponent<TextMesh>();
+            text.text = "!";
+            text.anchor = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignment.Center;
+            text.fontSize = 72;
+            text.characterSize = 0.045f;
+            text.fontStyle = FontStyle.Bold;
+            text.color = new Color(1f, 0.28f, 0.08f, 1f);
+
+            MeshRenderer renderer = text.GetComponent<MeshRenderer>();
+            if (renderer != null) renderer.sortingOrder = 90;
+            SetAttackWarning(false);
+        }
+
+        private void SetAttackWarning(bool visible)
+        {
+            if (_attackWarning == null) return;
+            _attackWarning.SetActive(visible);
+            if (visible) _attackWarning.transform.localScale = Vector3.one;
         }
 
         private void HandleDeath()
         {
             _state = EnemyState.Dead;
+            SetAttackWarning(false);
             _rb.linearVelocity = Vector2.zero;
             _rb.simulated = false;
 

@@ -98,10 +98,7 @@ namespace SoulSplit.UI
 
             if (x >= 34f && x < 48f)
             {
-                string returnRule = GameplaySettings.MaterializeAtSoulPosition
-                    ? "BEDEN RUHUN BULUNDUĞU YERDE OLUŞUR"
-                    : "BEDEN BIRAKTIĞIN YERDE KALIR";
-                return $"RUHU AYIR / BEDENLEŞ  {soulSwitch}     {returnRule}";
+                return $"RUHU AYIR / BEDENE DÖN  {soulSwitch}     BEDEN BIRAKTIĞIN YERDE KALIR";
             }
 
             if (x >= 56f && x < 74f)

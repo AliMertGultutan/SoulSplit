@@ -26,14 +26,10 @@ namespace SoulSplit.UI
         private Button _controlsButton;
         private ControlsRebindPanelUI _controlsPanel;
         private Toggle _hintsToggle;
-        private Toggle _hitStopToggle;
-        private Toggle _materializationToggle;
         private Toggle _fullscreenToggle;
         private Text _volumeLabel;
         private Text _cameraEffectsLabel;
         private Text _hintsLabel;
-        private Text _hitStopLabel;
-        private Text _materializationLabel;
         private Text _fullscreenLabel;
 
         public bool IsOpen => _root != null && _root.activeSelf;
@@ -130,21 +126,16 @@ namespace SoulSplit.UI
 
             _hintsToggle = CreateToggle(panel.transform, "ContextualHintsToggle", new Vector2(0f, 55f), out _hintsLabel);
             _hintsToggle.onValueChanged.AddListener(SetHints);
-            _hitStopToggle = CreateToggle(panel.transform, "HitStopToggle", new Vector2(0f, -15f), out _hitStopLabel);
-            _hitStopToggle.onValueChanged.AddListener(SetHitStop);
-            _materializationToggle = CreateToggle(panel.transform, "MaterializeAtSoulToggle",
-                new Vector2(0f, -85f), out _materializationLabel);
-            _materializationToggle.onValueChanged.AddListener(SetMaterialization);
             _fullscreenToggle = CreateToggle(panel.transform, "FullscreenToggle",
-                new Vector2(0f, -155f), out _fullscreenLabel);
+                new Vector2(0f, -15f), out _fullscreenLabel);
             _fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
 
             _controlsButton = CreateButton(panel.transform, "ControlsButton", "KLAVYE TUŞLARINI AYARLA",
-                new Vector2(0f, -220f), AccentColor, OpenControls);
+                new Vector2(0f, -85f), AccentColor, OpenControls);
             CreateButton(panel.transform, "ResetSettingsButton", "GENEL AYARLARI SIFIRLA",
-                new Vector2(0f, -284f), WarmColor, ResetDefaults);
+                new Vector2(0f, -149f), WarmColor, ResetDefaults);
             CreateButton(panel.transform, "BackButton", "GERİ",
-                new Vector2(0f, -348f), AccentColor, Close);
+                new Vector2(0f, -213f), AccentColor, Close);
             CreateText(panel.transform, "Footer", "Değişiklikler otomatik kaydedilir", 14, FontStyle.Normal,
                 new Vector2(0f, -405f), new Vector2(470f, 28f), new Color(0.55f, 0.62f, 0.68f));
         }
@@ -160,8 +151,6 @@ namespace SoulSplit.UI
             _volumeSlider.SetValueWithoutNotify(GameplaySettings.MasterVolume);
             _cameraEffectsSlider.SetValueWithoutNotify(GameplaySettings.CameraEffectsIntensity);
             _hintsToggle.SetIsOnWithoutNotify(GameplaySettings.ContextualHintsEnabled);
-            _hitStopToggle.SetIsOnWithoutNotify(GameplaySettings.HitStopEnabled);
-            _materializationToggle.SetIsOnWithoutNotify(GameplaySettings.MaterializeAtSoulPosition);
             _fullscreenToggle.SetIsOnWithoutNotify(GameplaySettings.Fullscreen);
             RefreshLabels();
         }
@@ -174,12 +163,6 @@ namespace SoulSplit.UI
             _hintsLabel.text = GameplaySettings.ContextualHintsEnabled
                 ? "OYUN İPUÇLARI  •  AÇIK"
                 : "OYUN İPUÇLARI  •  KAPALI";
-            _hitStopLabel.text = GameplaySettings.HitStopEnabled
-                ? "VURUŞ DONMASI  •  AÇIK"
-                : "VURUŞ DONMASI  •  KAPALI";
-            _materializationLabel.text = GameplaySettings.MaterializeAtSoulPosition
-                ? "RUHTAN DÖNÜŞ  •  RUHUN YANINDA"
-                : "RUHTAN DÖNÜŞ  •  BEDENİN ESKİ YERİNDE";
             _fullscreenLabel.text = GameplaySettings.Fullscreen
                 ? "TAM EKRAN  •  AÇIK"
                 : "TAM EKRAN  •  KAPALI";
@@ -200,19 +183,6 @@ namespace SoulSplit.UI
         private void SetHints(bool enabled)
         {
             GameplaySettings.ContextualHintsEnabled = enabled;
-            RefreshLabels();
-        }
-
-        private void SetHitStop(bool enabled)
-        {
-            GameplaySettings.HitStopEnabled = enabled;
-            if (!enabled) TimeScaleController.ClearHitStop();
-            RefreshLabels();
-        }
-
-        private void SetMaterialization(bool enabled)
-        {
-            GameplaySettings.MaterializeAtSoulPosition = enabled;
             RefreshLabels();
         }
 

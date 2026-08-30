@@ -7,9 +7,7 @@ namespace SoulSplit.Core
     {
         private const string MasterVolumeKey = "SoulSplit.Settings.MasterVolume";
         private const string CameraEffectsKey = "SoulSplit.Settings.CameraEffects";
-        private const string HitStopKey = "SoulSplit.Settings.HitStop";
         private const string ContextualHintsKey = "SoulSplit.Settings.ContextualHints";
-        private const string MaterializeAtSoulKey = "SoulSplit.Settings.MaterializeAtSoul";
         private const string FullscreenKey = "SoulSplit.Settings.Fullscreen";
 
         public const float DefaultMasterVolume = 0.8f;
@@ -33,25 +31,29 @@ namespace SoulSplit.Core
             set => SetFloat(CameraEffectsKey, Mathf.Clamp01(value));
         }
 
-        public static bool HitStopEnabled
-        {
-            get => GetBool(HitStopKey, true);
-            set => SetBool(HitStopKey, value);
-        }
-
         public static bool ContextualHintsEnabled
         {
             get => GetBool(ContextualHintsKey, true);
             set => SetBool(ContextualHintsKey, value);
         }
 
-        public static bool HasMaterializationPreference => PlayerPrefs.HasKey(MaterializeAtSoulKey);
+        // Eski kayitlar ve dis cagri uyumlulugu icin adlar korunur; iki kural da
+        // artik sabittir ve ayarlar ekraninda degistirilemez.
+        public static bool HitStopEnabled
+        {
+            get => false;
+            set => TimeScaleController.ClearHitStop();
+        }
+
+        public static bool HasMaterializationPreference => false;
 
         public static bool MaterializeAtSoulPosition
         {
-            get => GetBool(MaterializeAtSoulKey, true);
-            set => SetBool(MaterializeAtSoulKey, value);
+            get => false;
+            set { }
         }
+
+        public static void ResetMaterializationPreference() { }
 
         public static bool Fullscreen
         {
@@ -63,19 +65,11 @@ namespace SoulSplit.Core
             }
         }
 
-        public static void ResetMaterializationPreference()
-        {
-            PlayerPrefs.DeleteKey(MaterializeAtSoulKey);
-            PlayerPrefs.Save();
-        }
-
         public static void ResetAllToDefaults()
         {
             PlayerPrefs.DeleteKey(MasterVolumeKey);
             PlayerPrefs.DeleteKey(CameraEffectsKey);
-            PlayerPrefs.DeleteKey(HitStopKey);
             PlayerPrefs.DeleteKey(ContextualHintsKey);
-            PlayerPrefs.DeleteKey(MaterializeAtSoulKey);
             PlayerPrefs.DeleteKey(FullscreenKey);
             PlayerPrefs.Save();
             ApplyStoredSettings();
