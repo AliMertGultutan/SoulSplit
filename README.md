@@ -56,10 +56,3 @@ Oyun içi yönlendirmeler de varsayılan tuşlar yerine oyuncunun etkin atamalar
 
 Unity tarafından üretilen `Library`, `Temp`, `Logs` ve IDE proje dosyaları repoya eklenmez. Yerel ekran görüntüleri `LocalCaptures`, kurtarma sahneleri `Recovery` altında tutulur ve Git tarafından izlenmez.
 
-## Doğrulama
-
-Unity Test Runner'da EditMode ve PlayMode testlerini çalıştırın. Dağıtım öncesinde ayrıca MainMenu → SampleScene geçişini, iki formun saldırı ayrımını, checkpoint/respawn döngüsünü ve kazanma ekranını Play Mode'da kontrol edin.
-
-## Üçüncü taraf varlıklar
-
-CraftPix kaynaklı sprite paketlerinin lisans metinleri ilgili sanat klasörlerinde tutulur. Yeni dış kaynak eklerken lisans dosyasını varlıkla aynı klasöre koyun ve kaynağı `THIRD_PARTY_NOTICES.md` içinde kaydedin.
