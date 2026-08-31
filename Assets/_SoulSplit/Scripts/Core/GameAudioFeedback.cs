@@ -21,19 +21,19 @@ namespace SoulSplit.Core
         private MeleeAttack[] _attacks;
         private Health[] _healthPools;
 
-        private AudioClip _jumpClip;
-        private AudioClip _wallJumpClip;
-        private AudioClip _lightAttackClip;
-        private AudioClip _heavyAttackClip;
-        private AudioClip _hitClip;
-        private AudioClip _deflectClip;
-        private AudioClip _deathClip;
-        private AudioClip _soulOutClip;
-        private AudioClip _soulReturnClip;
-        private AudioClip _ultimateClip;
-        private AudioClip _checkpointClip;
-        private AudioClip _dodgeClip;
-        private AudioClip _healClip;
+        private AudioClip[] _jumpClips;
+        private AudioClip[] _wallJumpClips;
+        private AudioClip[] _lightAttackClips;
+        private AudioClip[] _heavyAttackClips;
+        private AudioClip[] _hitClips;
+        private AudioClip[] _deflectClips;
+        private AudioClip[] _deathClips;
+        private AudioClip[] _soulOutClips;
+        private AudioClip[] _soulReturnClips;
+        private AudioClip[] _ultimateClips;
+        private AudioClip[] _checkpointClips;
+        private AudioClip[] _dodgeClips;
+        private AudioClip[] _healClips;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void RegisterBootstrap()
@@ -151,13 +151,13 @@ namespace SoulSplit.Core
             }
         }
 
-        private void HandleJump() => Play(_jumpClip, 0.38f);
-        private void HandleWallJump() => Play(_wallJumpClip, 0.42f);
-        private void HandleDodge() => Play(_dodgeClip, 0.46f);
+        private void HandleJump() => Play(_jumpClips, 0.38f);
+        private void HandleWallJump() => Play(_wallJumpClips, 0.42f);
+        private void HandleDodge() => Play(_dodgeClips, 0.46f);
 
         private void HandleAttack(AttackTier tier)
         {
-            Play(tier == AttackTier.Heavy ? _heavyAttackClip : _lightAttackClip,
+            Play(tier == AttackTier.Heavy ? _heavyAttackClips : _lightAttackClips,
                 tier == AttackTier.Heavy ? 0.56f : 0.38f);
         }
 
@@ -166,33 +166,33 @@ namespace SoulSplit.Core
             switch (result)
             {
                 case HitResult.Deflected:
-                    Play(_deflectClip, 0.48f);
+                    Play(_deflectClips, 0.48f);
                     break;
                 case HitResult.Damaged:
-                    Play(_hitClip, amount >= 2 ? 0.62f : 0.45f);
+                    Play(_hitClips, amount >= 2 ? 0.62f : 0.45f);
                     break;
                 case HitResult.Killed:
-                    Play(_deathClip, 0.62f);
+                    Play(_deathClips, 0.62f);
                     break;
             }
         }
 
         private void HandleFormChanged(bool soulActive, bool forced)
         {
-            Play(soulActive ? _soulOutClip : _soulReturnClip, forced ? 0.62f : 0.50f);
+            Play(soulActive ? _soulOutClips : _soulReturnClips, forced ? 0.62f : 0.50f);
         }
 
         private void HandleUltimateStateChanged(bool active)
         {
-            if (active) Play(_ultimateClip, 0.72f);
+            if (active) Play(_ultimateClips, 0.72f);
         }
 
         private void HandleCheckpointSaved(ProgressionSave.CheckpointData data)
         {
-            Play(_checkpointClip, 0.48f);
+            Play(_checkpointClips, 0.48f);
         }
 
-        private void HandleHealed(int amount) => Play(_healClip, 0.52f);
+        private void HandleHealed(int amount) => Play(_healClips, 0.52f);
 
         private static bool IsPlayerOwned(Component component)
         {
@@ -201,31 +201,45 @@ namespace SoulSplit.Core
                     component.GetComponentInParent<SoulController>() != null);
         }
 
-        private void Play(AudioClip clip, float volume)
+        private void Play(AudioClip[] clips, float volume)
         {
-            if (_source != null && clip != null) _source.PlayOneShot(clip, volume);
+            if (_source == null || clips == null || clips.Length == 0) return;
+            AudioClip clip = clips[Random.Range(0, clips.Length)];
+            if (clip != null) _source.PlayOneShot(clip, volume);
         }
 
         private void BuildClips()
         {
-            _jumpClip = LoadClip("SoulJump") ?? CreateSweep("Jump", 0.13f, 260f, 430f, 0.05f, 0.25f, 11);
-            _wallJumpClip = LoadClip("SoulWallJump") ?? CreateSweep("WallJump", 0.16f, 330f, 560f, 0.08f, 0.22f, 13);
-            _lightAttackClip = LoadClip("SoulLightAttack") ?? CreateSweep("LightAttack", 0.12f, 430f, 120f, 0.62f, 0.18f, 17);
-            _heavyAttackClip = LoadClip("SoulHeavyAttack") ?? CreateSweep("HeavyAttack", 0.22f, 210f, 62f, 0.48f, 0.34f, 19);
-            _hitClip = LoadClip("SoulHit") ?? CreateSweep("Hit", 0.10f, 150f, 72f, 0.72f, 0.22f, 23);
-            _deflectClip = LoadClip("SoulDeflect") ?? CreateSweep("Deflect", 0.14f, 980f, 620f, 0.12f, 0.18f, 29);
-            _deathClip = LoadClip("SoulDeath") ?? CreateSweep("Death", 0.38f, 180f, 42f, 0.32f, 0.45f, 31);
-            _soulOutClip = LoadClip("SoulOut") ?? CreateSweep("SoulOut", 0.34f, 240f, 760f, 0.18f, 0.32f, 37);
-            _soulReturnClip = LoadClip("SoulReturn") ?? CreateSweep("SoulReturn", 0.28f, 690f, 210f, 0.16f, 0.30f, 41);
-            _ultimateClip = LoadClip("SoulSurge") ?? CreateSweep("SoulSurge", 0.62f, 180f, 1080f, 0.08f, 0.48f, 47);
-            _checkpointClip = LoadClip("SoulCheckpoint") ?? CreateSweep("Checkpoint", 0.42f, 380f, 820f, 0.04f, 0.42f, 43);
-            _dodgeClip = LoadClip("SoulStep") ?? CreateSweep("SoulStep", 0.16f, 720f, 210f, 0.20f, 0.24f, 53);
-            _healClip = LoadClip("SoulRecovery") ?? CreateSweep("Recovery", 0.30f, 360f, 760f, 0.02f, 0.38f, 59);
+            _jumpClips = LoadVariants("SoulJump", CreateSweep("Jump", 0.13f, 260f, 430f, 0.05f, 0.25f, 11));
+            _wallJumpClips = LoadVariants("SoulWallJump", CreateSweep("WallJump", 0.16f, 330f, 560f, 0.08f, 0.22f, 13));
+            _lightAttackClips = LoadVariants("SoulLightAttack", CreateSweep("LightAttack", 0.12f, 430f, 120f, 0.62f, 0.18f, 17));
+            _heavyAttackClips = LoadVariants("SoulHeavyAttack", CreateSweep("HeavyAttack", 0.22f, 210f, 62f, 0.48f, 0.34f, 19));
+            _hitClips = LoadVariants("SoulHit", CreateSweep("Hit", 0.10f, 150f, 72f, 0.72f, 0.22f, 23));
+            _deflectClips = LoadVariants("SoulDeflect", CreateSweep("Deflect", 0.14f, 980f, 620f, 0.12f, 0.18f, 29));
+            _deathClips = LoadVariants("SoulDeath", CreateSweep("Death", 0.38f, 180f, 42f, 0.32f, 0.45f, 31));
+            _soulOutClips = LoadVariants("SoulOut", CreateSweep("SoulOut", 0.34f, 240f, 760f, 0.18f, 0.32f, 37));
+            _soulReturnClips = LoadVariants("SoulReturn", CreateSweep("SoulReturn", 0.28f, 690f, 210f, 0.16f, 0.30f, 41));
+            _ultimateClips = LoadVariants("SoulSurge", CreateSweep("SoulSurge", 0.62f, 180f, 1080f, 0.08f, 0.48f, 47));
+            _checkpointClips = LoadVariants("SoulCheckpoint", CreateSweep("Checkpoint", 0.42f, 380f, 820f, 0.04f, 0.42f, 43));
+            _dodgeClips = LoadVariants("SoulStep", CreateSweep("SoulStep", 0.16f, 720f, 210f, 0.20f, 0.24f, 53));
+            _healClips = LoadVariants("SoulRecovery", CreateSweep("Recovery", 0.30f, 360f, 760f, 0.02f, 0.38f, 59));
         }
 
         private static AudioClip LoadClip(string clipName)
         {
             return Resources.Load<AudioClip>("SoulSplitAudio/" + clipName);
+        }
+
+        private static AudioClip[] LoadVariants(string clipName, AudioClip fallback)
+        {
+            AudioClip first = LoadClip(clipName + "1");
+            AudioClip second = LoadClip(clipName + "2");
+            if (first != null && second != null) return new[] { first, second };
+            if (first != null) return new[] { first };
+            if (second != null) return new[] { second };
+
+            AudioClip original = LoadClip(clipName);
+            return new[] { original != null ? original : fallback };
         }
 
         private static AudioClip CreateSweep(string name, float duration, float startFrequency,
